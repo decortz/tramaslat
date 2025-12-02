@@ -1058,18 +1058,8 @@ def run():
     """Función principal del mapeo"""
     st.markdown('<div class="mapeo-title">Mapeo de Gestión Cultural y Digital en Latinoamérica</div>', 
                 unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="mapeo-description">
-        En este mapeo medimos el nivel de formalización en el mundo del arte y la cultura, 
-        y lo comparamos con el nivel de digitalización.
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if st.button("📝 Responder Encuesta", use_container_width=True, type="primary"):
-        st.session_state.page = 'encuesta'
-        st.session_state.encuesta_page = 0
-        st.rerun()
+    st.session_state.encuesta_page = 0
+    st.rerun()
     
     st.markdown("---")
     
