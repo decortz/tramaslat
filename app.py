@@ -1,0 +1,1103 @@
+import streamlit as st
+from datetime import datetime
+import pandas as pd
+import plotly.graph_objects as go
+import hashlib
+import io
+
+# ==================== CONFIGURACIÓN ====================
+st.set_page_config(
+    page_title="TRAMAS - Mapeos Sociales",
+    page_icon="🕸️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ==================== CSS PERSONALIZADO ====================
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Slab:wght@400;700&display=swap');
+    
+    [data-testid="stSidebar"] {
+        background-color: #808080;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
+        color: black;
+    }
+    
+    .tramas-logo {
+        background-color: #000000;
+        color: white;
+        padding: 1rem 0.5rem;
+        border-radius: 10px;
+        font-family: 'Roboto', sans-serif;
+        font-weight: 700;
+        font-size: 2rem;
+        text-align: center;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+    }
+    
+    .tramas-logo-icon {
+        font-size: 2rem;
+        color: #808080;
+    }
+    
+    .credits-small {
+        font-family: 'Roboto Slab', serif;
+        font-style: italic;
+        font-size: 0.7rem;
+        color: black;
+        text-align: center;
+        margin: 1rem 0 0.5rem 0;
+        line-height: 1.3;
+    }
+    
+    .mapeo-title {
+        background-color: #000000;
+        color: white;
+        padding: 0.8rem 2rem;
+        border-radius: 10px;
+        font-family: 'Roboto', sans-serif;
+        font-weight: 700;
+        font-size: 1.8rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .mapeo-description {
+        background-color: #f5f5f5;
+        padding: 1rem;
+        border-radius: 8px;
+        font-family: 'Roboto Slab', serif;
+        color: #333;
+        text-align: center;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+    }
+    
+    .map-legend {
+        background-color: #f0f0f0;
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-family: 'Roboto Slab', serif;
+        font-size: 0.95rem;
+        color: #333;
+        margin-bottom: 1rem;
+    }
+    
+    .legend-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin: 0 3px;
+    }
+    
+    .question-box {
+        background-color: white;
+        color: black;
+        padding: 1rem;
+        border-radius: 8px;
+        font-family: 'Roboto Slab', serif;
+        margin: 0.5rem 0;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .thanks-message {
+        background-color: #A870B0;
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        text-align: center;
+        font-family: 'Roboto', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 1rem 0;
+    }
+    
+    .stButton > button {
+        background-color: #A870B0;
+        color: #62CBE6;
+        font-family: 'Roboto', sans-serif;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 0.75rem 2rem;
+        border: none;
+        font-size: 1.1rem;
+    }
+    
+    .stButton > button:hover {
+        background-color: #8f5a9a;
+        color: #4db8d4;
+    }
+    
+    .stTextInput > div > div > input:focus,
+    .stSelectbox > div > div > select:focus,
+    .stNumberInput > div > div > input:focus {
+        border-color: #A870B0 !important;
+        box-shadow: 0 0 0 1px #A870B0 !important;
+    }
+    
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div > select,
+    .stNumberInput > div > div > input {
+        font-family: 'Roboto Slab', serif;
+        background-color: white;
+        color: black;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ==================== PÁGINA INTRO ====================
+elif st.session_state.seccion == 'intro':
+    st.markdown('<div class="mapeo-title">TRAMAS</div>', unsafe_allow_html=True)
+    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #666;">Tejidos en Red: Análisis y Mapeos Sociales</p>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="question-box">
+        <h3 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Bienvenida a TRAMAS</h3>
+        <p style="line-height: 1.8;">
+            TRAMAS es una plataforma de mapeos sociales para conocer redes y organizaciones culturales, 
+            sociales y creativas en América Latina. Es realizada por académicos y académicas de la región.
+            Aquí podrás participar en diferentes mapeos y conocer los resultados de estas investigaciones colaborativas.
+        </p>
+        <p style="line-height: 1.8; margin-top: 1rem;">
+            Selecciona un mapeo del menú lateral para comenzar.
+            Te agradecemos todo el apoyo, tu aporte es esencial para nuestro trabajo.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ==================== AUTENTICACIÓN ====================
+
+# Credenciales del administrador (cambiar en producción)
+ADMIN_USER = "admin_tramas"
+ADMIN_PASSWORD = "tramas2025"  # ⚠️ CAMBIAR EN PRODUCCIÓN
+
+def verificar_credenciales(username, password):
+    """Verifica si las credenciales son correctas"""
+    return username == ADMIN_USER and password == ADMIN_PASSWORD
+
+def inicializar_sesion():
+    """Inicializa el estado de sesión para autenticación"""
+    if 'autenticado' not in st.session_state:
+        st.session_state.autenticado = False
+    if 'username' not in st.session_state:
+        st.session_state.username = None
+
+def login():
+    """Proceso de login del usuario"""
+    st.session_state.autenticado = True
+    st.session_state.username = ADMIN_USER
+
+def logout():
+    """Proceso de logout del usuario"""
+    st.session_state.autenticado = False
+    st.session_state.username = None
+
+def esta_autenticado():
+    """Verifica si hay una sesión activa"""
+    return st.session_state.get('autenticado', False)
+
+# ==================== EXPORTACIÓN CSV ====================
+
+def preparar_datos_csv(respuestas):
+    """
+    Prepara los datos para exportación CSV
+    """
+    if not respuestas:
+        return None
+    
+    datos_procesados = []
+    
+    for respuesta in respuestas:
+        # Datos demográficos
+        dato = {
+            'timestamp': respuesta.get('timestamp', ''),
+            'pais': respuesta.get('pais', ''),
+            'ciudad': respuesta.get('ciudad', ''),
+            'edad': respuesta.get('edad', ''),
+            'nivel_academico': respuesta.get('nivel_academico', ''),
+            
+            # Datos organizacionales
+            'num_organizaciones': respuesta.get('num_organizaciones', 0),
+            'num_proyectos': respuesta.get('num_proyectos', 0),
+            
+            # Herramientas administrativas
+            'jerarquia': respuesta.get('jerarquia', ''),
+            'planeacion': respuesta.get('planeacion', ''),
+            
+            # Digitalización
+            'num_herramientas': respuesta.get('num_herramientas', 0),
+            'num_comunidades': respuesta.get('num_comunidades', 0),
+            'num_ias': respuesta.get('num_ias', 0),
+            'num_ias_pagadas': respuesta.get('num_ias_pagadas', 0),
+            
+            # Índices calculados
+            'nivel_formalizacion': respuesta.get('nivel_formalizacion', 0),
+            'nivel_digitalizacion': respuesta.get('nivel_digitalizacion', 0),
+            'tipo_org_score': respuesta.get('tipo_org_score', 0)
+        }
+        
+        datos_procesados.append(dato)
+    
+    return pd.DataFrame(datos_procesados)
+
+def generar_csv(df):
+    """Genera un archivo CSV en memoria para descarga"""
+    if df is None or df.empty:
+        return None
+    
+    buffer = io.StringIO()
+    df.to_csv(buffer, index=False, encoding='utf-8-sig')
+    buffer.seek(0)
+    return buffer.getvalue()
+
+def mostrar_boton_descarga():
+    """
+    Muestra el botón de descarga de datos
+    Solo visible para usuarios autenticados
+    """
+    if not esta_autenticado():
+        return
+    
+    # Obtener datos
+    respuestas = st.session_state.get('respuestas', [])
+    
+    if not respuestas:
+        st.info("ℹ️ No hay datos disponibles para descargar")
+        return
+    
+    # Preparar datos
+    df = preparar_datos_csv(respuestas)
+    
+    if df is None or df.empty:
+        st.warning("⚠️ No hay datos procesados para descargar")
+        return
+    
+    # Generar CSV
+    csv_data = generar_csv(df)
+    
+    if csv_data:
+        # Nombre del archivo con timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"mapeo_gestion_cultural_{timestamp}.csv"
+        
+        # Mostrar información y botón
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.success(f"📊 **{len(df)} respuestas** listas para descargar")
+        
+        with col2:
+            st.download_button(
+                label="⬇️ Descargar CSV",
+                data=csv_data,
+                file_name=nombre_archivo,
+                mime="text/csv",
+                use_container_width=True
+            )
+        
+        # Mostrar preview de los datos
+        with st.expander("👁️ Vista previa de los datos"):
+            st.dataframe(df.head(10), use_container_width=True)
+            st.caption(f"Mostrando las primeras 10 de {len(df)} filas")
+
+# ==================== SIDEBAR ====================
+with st.sidebar:
+    st.markdown("""
+    <div class="tramas-logo">
+        <span class="tramas-logo-icon">🕸️</span>
+        <span>TRAMAS</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    if st.button("🏠 Inicio", use_container_width=True, key="btn_inicio"):
+        if 'page' in st.session_state:
+            del st.session_state['page']
+        if 'encuesta_page' in st.session_state:
+            del st.session_state['encuesta_page']
+        st.rerun()
+    
+    if st.button("📊 Gestión Cultural y Digital", use_container_width=True, key="btn_mapeo1"):
+        st.session_state.page = 'vista_mapas'
+        st.rerun()
+    
+    # Botón de contacto
+    st.markdown("---")
+    st.markdown("""
+    <a href="https://elchorro.com.co/contactanos/" target="_blank" style="text-decoration: none;">
+        <button style="width: 100%; background-color: #A870B0; color: #62CBE6; font-family: 'Roboto', sans-serif; 
+                       font-weight: 700; border-radius: 10px; padding: 0.75rem; border: none; font-size: 1rem; cursor: pointer;">
+            💬 ¿Te interesa hacer un mapeo? ¡Contáctanos!
+        </button>
+    </a>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Créditos
+    st.markdown("""
+    <div class="credits-small">
+        Este programa es un desarrollo en colaboración entre El Chorro Producciones y Huika Mexihco
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Logos con links
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        <a href="https://www.elchorro.com.co" target="_blank">
+            <img src="https://elchorroco.wordpress.com/wp-content/uploads/2025/04/ch-plano.png" width="50">
+        </a>
+        """, unsafe_allow_html=True)
+    with col2:
+        st.markdown("""
+        <a href="https://www.huikamexihco.com.mx" target="_blank">
+            <img src="https://huikamexihco.com.mx/wp-content/uploads/2021/04/huika-mexihco.png" width="50">
+        </a>
+        """, unsafe_allow_html=True)
+    
+    # ✅ ==================== SISTEMA DE AUTENTICACIÓN (NUEVO) ====================
+    
+    # Inicializar sesión
+    inicializar_sesion()
+    
+    st.markdown("---")
+    
+    # Mostrar login o info de sesión según el estado
+    if esta_autenticado():
+        # Usuario ya logueado - mostrar info
+        st.markdown("### 👤 Sesión Activa")
+        st.info(f"**Usuario:** {st.session_state.username}")
+        
+        if st.button("🚪 Cerrar sesión", use_container_width=True, key="btn_logout"):
+            logout()
+            st.rerun()
+    else:
+        # No hay sesión - mostrar formulario de login
+        st.markdown("### 🔐 Acceso Administrador")
+        
+        with st.form("login_form"):
+            username = st.text_input("Usuario", placeholder="admin_tramas")
+            password = st.text_input("Contraseña", type="password", placeholder="••••••••")
+            submit = st.form_submit_button("Iniciar sesión", use_container_width=True)
+            
+            if submit:
+                if verificar_credenciales(username, password):
+                    login()
+                    st.success("✅ Sesión iniciada")
+                    st.rerun()
+                else:
+                    st.error("❌ Credenciales incorrectas")
+
+
+# ==================== MAPEO GESTIÓN CULTURAL ====================
+elif st.session_state.seccion == 'mapeo1':
+    
+    st.markdown('<div class="mapeo-title">Mapeo de Gestión Cultural y Digital en Latinoamérica</div>', unsafe_allow_html=True)
+    
+# Funciones de cálculo
+def calcular_tipo_organizacion_score(tipo_org):
+    scores = {
+        'Empresa grande (más de 100 personas)': 10,
+        'Organización pública': -7,
+        'Empresa mediana (entre 50 y 100 personas)': 8,
+        'Organización educativa privada': -2,
+        'Organización educativa pública': -5,
+        'Empresa pequeña (menos de 50 personas)': 5,
+        'Asociación civil, corporación o colectivo': -10,
+        'Emprendimiento': 2
+    }
+    return scores.get(tipo_org, 0)
+
+def calcular_nivel_formalizacion(respuesta):
+    puntaje = 0
+    jerarquia_scores = {
+        'Altamente jerarquizadas': 25,
+        'En general menos de 3 niveles jerárquicos': 18,
+        'Nos repartimos los liderazgos y funciones': 10,
+        'No reconozco jerarquías': 0
+    }
+    puntaje += jerarquia_scores.get(respuesta.get('jerarquia', ''), 0)
+    
+    planeacion_scores = {
+        'Hago o llevo un plan estratégico periódico y se revisa por la dirección': 25,
+        'Tengo un plan estratégico que se comunica de manera oficial': 20,
+        'Tengo un plan estratégico pero no lo comunico': 15,
+        'Participo en el desarrollo del plan estratégico en colectivo': 10,
+        'No tengo ninguna planeación': 0
+    }
+    puntaje += planeacion_scores.get(respuesta.get('planeacion', ''), 0)
+    
+    funciones_scores = {
+        'Roles claramente identificados y bajo contrato': 25,
+        'Roles identificados y formalizados': 20,
+        'Roles informales pero identificables': 12,
+        'Roles informales fluidos': 6,
+        'No tengo roles definidos': 0
+    }
+    puntaje += funciones_scores.get(respuesta.get('funciones', ''), 0)
+    
+    identidad_scores = {
+        'Marca con manual definido': 25,
+        'Marca definida, identidad informal': 18,
+        'Una marca más bien fluida': 12,
+        'Llevo una marca por línea de trabajo': 8,
+        'Sin identidad definida': 0
+    }
+    puntaje += identidad_scores.get(respuesta.get('identidad', ''), 0)
+    
+    return puntaje
+
+def calcular_nivel_digitalizacion(respuesta):
+    puntaje = 0
+    num_herramientas = respuesta.get('num_herramientas', 0)
+    puntaje += min(num_herramientas * 5, 40)
+    
+    num_ias = respuesta.get('num_ias', 0)
+    puntaje += min(num_ias * 5, 30)
+    
+    num_ias_pagadas = respuesta.get('num_ias_pagadas', 0)
+    puntaje += min(num_ias_pagadas * 5, 15)
+    
+    num_comunidades = respuesta.get('num_comunidades', 0)
+    puntaje += min(num_comunidades * 3, 15)
+    
+    return min(puntaje, 100)
+
+# Funciones de visualización
+
+def crear_scatter_dual(df_filtrado):
+    """Crea scatter plot dual con puntos de Formalización y Digitalización"""
+    fig = go.Figure()
+    
+    # Puntos de Formalización (#5D80B5)
+    fig.add_trace(go.Scatter(
+        x=df_filtrado['tipo_org_score'],
+        y=df_filtrado['nivel_formalizacion'],
+        mode='markers',
+        name='Formalización',
+        marker=dict(
+            size=df_filtrado['total_entidades'] * 5 + 5,
+            color='#5D80B5',
+            opacity=0.6,
+            line=dict(width=1, color='white')
+        ),
+        text=df_filtrado.apply(
+            lambda row: f"País: {row['pais']}<br>Orgs: {row['num_organizaciones']}<br>Proyectos: {row['num_proyectos']}<br>Formalización: {row['nivel_formalizacion']}", 
+            axis=1
+        ),
+        hovertemplate='%{text}<extra></extra>'
+    ))
+    
+    # Puntos de Digitalización (#A870B0)
+    fig.add_trace(go.Scatter(
+        x=df_filtrado['tipo_org_score'],
+        y=df_filtrado['nivel_digitalizacion'],
+        mode='markers',
+        name='Digitalización',
+        marker=dict(
+            size=df_filtrado['total_entidades'] * 5 + 5,
+            color='#A870B0',
+            opacity=0.6,
+            line=dict(width=1, color='white')
+        ),
+        text=df_filtrado.apply(
+            lambda row: f"País: {row['pais']}<br>Orgs: {row['num_organizaciones']}<br>Proyectos: {row['num_proyectos']}<br>Digitalización: {row['nivel_digitalizacion']}", 
+            axis=1
+        ),
+        hovertemplate='%{text}<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        xaxis_title="Tipo de organización: de muy burocratizada a muy fluida",
+        yaxis_title="Muy formal y muy digitalizada a nada formal y muy tradicional",
+        height=600,
+        hovermode='closest',
+        plot_bgcolor='white',
+        xaxis=dict(gridcolor='#f0f0f0', range=[-12, 12]),
+        yaxis=dict(gridcolor='#f0f0f0', range=[-5, 105])
+    )
+    
+    return fig
+
+def crear_grafico_barras_dual(data1, data2, label1, label2, color1='#5D80B5', color2='#A870B0'):
+    """Crea gráfico de barras comparativo con dos series"""
+    fig = go.Figure()
+    
+    fig.add_trace(go.Bar(
+        name=label1, 
+        x=data1.index, 
+        y=data1.values, 
+        marker_color=color1
+    ))
+    
+    fig.add_trace(go.Bar(
+        name=label2, 
+        x=data2.index, 
+        y=data2.values, 
+        marker_color=color2
+    ))
+    
+    fig.update_layout(
+        barmode='group', 
+        xaxis_tickangle=-45, 
+        height=400
+    )
+    
+    return fig
+
+def filtrar_datos(df, filtros):
+    """Aplica filtros demográficos a un DataFrame"""
+    df_filtrado = df.copy()
+    
+    if filtros.get('pais', 'Todos') != 'Todos':
+        df_filtrado = df_filtrado[df_filtrado['pais'] == filtros['pais']]
+    
+    if filtros.get('ciudad', 'Todos') != 'Todos':
+        df_filtrado = df_filtrado[df_filtrado['ciudad'] == filtros['ciudad']]
+    
+    if filtros.get('edad', 'Todos') != 'Todos':
+        df_filtrado = df_filtrado[df_filtrado['edad'] == filtros['edad']]
+    
+    if filtros.get('nivel_academico', 'Todos') != 'Todos':
+        df_filtrado = df_filtrado[df_filtrado['nivel_academico'] == filtros['nivel_academico']]
+    
+    return df_filtrado
+
+def mostrar_mapas():
+    """Vista de mapas con gráficos y filtros"""
+    
+    # Verificar si hay datos
+    if 'datos' not in st.session_state or not st.session_state.datos.get('respuestas'):
+        st.info("📊 Aún no hay respuestas. ¡Sé el primero en completar la encuesta!")
+        return
+    
+    # Preparar datos para visualización
+    respuestas = st.session_state.datos['respuestas']
+    datos_procesados = []
+    
+    for respuesta in respuestas:
+        # Calcular índices
+        nivel_form = calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {}))
+        nivel_digit = calcular_nivel_digitalizacion(respuesta.get('herramientas_digitales', {}))
+        
+        # Calcular score de tipo de org (suma de todas las organizaciones)
+        tipo_org_score = 0
+        for org in respuesta.get('organizaciones', []):
+            tipo_org_score += calcular_tipo_organizacion_score(org.get('tipo', ''))
+        
+        # Agregar datos procesados
+        datos_procesados.append({
+            'num_organizaciones': respuesta.get('num_organizaciones', 0),
+            'num_proyectos': respuesta.get('num_proyectos', 0),
+            'total_entidades': respuesta.get('num_organizaciones', 0) + respuesta.get('num_proyectos', 0),
+            'tipo_org_score': tipo_org_score,
+            'nivel_formalizacion': nivel_form,
+            'nivel_digitalizacion': nivel_digit,
+            'jerarquia': respuesta.get('herramientas_admin', {}).get('jerarquia', ''),
+            'planeacion': respuesta.get('herramientas_admin', {}).get('planeacion', ''),
+            'num_herramientas': respuesta.get('herramientas_digitales', {}).get('num_herramientas', 0),
+            'num_ias': respuesta.get('herramientas_digitales', {}).get('num_ias', 0),
+            'num_ias_pagadas': respuesta.get('herramientas_digitales', {}).get('num_ias_pagadas', 0),
+            'num_comunidades': respuesta.get('herramientas_digitales', {}).get('num_comunidades', 0),
+            'pais': respuesta.get('demograficos', {}).get('pais', ''),
+            'ciudad': respuesta.get('demograficos', {}).get('ciudad', ''),
+            'edad': respuesta.get('demograficos', {}).get('edad', ''),
+            'nivel_academico': respuesta.get('demograficos', {}).get('nivel_academico', '')
+        })
+    
+    df_datos = pd.DataFrame(datos_procesados)
+    
+    # Filtros demográficos
+    st.markdown("### Filtros Demográficos")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        paises_disponibles = ['Todos'] + sorted(df_datos['pais'].unique().tolist())
+        filtro_pais = st.selectbox("País:", paises_disponibles, key="f_pais")
+    
+    with col2:
+        if filtro_pais != 'Todos':
+            ciudades_disponibles = ['Todos'] + sorted(
+                df_datos[df_datos['pais'] == filtro_pais]['ciudad'].unique().tolist()
+            )
+        else:
+            ciudades_disponibles = ['Todos'] + sorted(df_datos['ciudad'].unique().tolist())
+        filtro_ciudad = st.selectbox("Ciudad:", ciudades_disponibles, key="f_ciudad")
+    
+    with col3:
+        edades_disponibles = ['Todos'] + sorted(df_datos['edad'].unique().tolist())
+        filtro_edad = st.selectbox("Edad:", edades_disponibles, key="f_edad")
+    
+    with col4:
+        niveles_disponibles = ['Todos'] + sorted(df_datos['nivel_academico'].unique().tolist())
+        filtro_nivel = st.selectbox("Nivel académico:", niveles_disponibles, key="f_nivel")
+    
+    # Aplicar filtros
+    filtros = {
+        'pais': filtro_pais,
+        'ciudad': filtro_ciudad,
+        'edad': filtro_edad,
+        'nivel_academico': filtro_nivel
+    }
+    
+    df_filtrado = filtrar_datos(df_datos, filtros)
+    
+    st.info(f"📊 Mostrando {len(df_filtrado)} de {len(df_datos)} respuestas")
+    
+    if len(df_filtrado) == 0:
+        st.warning("No hay datos con los filtros seleccionados. Prueba con otros criterios.")
+        return
+    
+    st.markdown("---")
+    
+    # GRÁFICO PRINCIPAL
+    st.markdown("### Gráfico Principal")
+    st.markdown("""
+    <div class="map-legend">
+        En este mapa medimos, por persona, qué tan formalizadas son sus relaciones 
+        <span class="legend-dot" style="background-color: #5D80B5;"></span> 
+        y su nivel de digitalización 
+        <span class="legend-dot" style="background-color: #A870B0;"></span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    fig = crear_scatter_dual(df_filtrado)
+    st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # GRÁFICOS COMPLEMENTARIOS
+    st.markdown("### Gráficos Complementarios")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("#### 1. Cantidad de organizaciones + proyectos por persona")
+        fig1 = go.Figure(data=[
+            go.Bar(x=df_filtrado['total_entidades'].value_counts().sort_index().index,
+                   y=df_filtrado['total_entidades'].value_counts().sort_index().values,
+                   marker_color='#5D80B5')
+        ])
+        fig1.update_layout(showlegend=False, xaxis_title="Cantidad", yaxis_title="Frecuencia")
+        st.plotly_chart(fig1, use_container_width=True)
+    
+    with col2:
+        st.markdown("#### 2. Tipos de jerarquías y planeación")
+        jer_counts = df_filtrado['jerarquia'].value_counts()
+        plan_counts = df_filtrado['planeacion'].value_counts()
+        
+        fig2 = crear_grafico_barras_dual(
+            jer_counts, plan_counts,
+            'Jerarquía', 'Planeación'
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+    
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        st.markdown("#### 3. Herramientas digitales y comunidades")
+        herr_counts = df_filtrado['num_herramientas'].value_counts().sort_index()
+        com_counts = df_filtrado['num_comunidades'].value_counts().sort_index()
+        
+        fig3 = crear_grafico_barras_dual(
+            herr_counts, com_counts,
+            'Herramientas', 'Comunidades'
+        )
+        st.plotly_chart(fig3, use_container_width=True)
+    
+    with col4:
+        st.markdown("#### 4. IAs utilizadas y IAs pagadas")
+        ia_counts = df_filtrado['num_ias'].value_counts().sort_index()
+        ia_pag_counts = df_filtrado['num_ias_pagadas'].value_counts().sort_index()
+        
+        fig4 = crear_grafico_barras_dual(
+            ia_counts, ia_pag_counts,
+            'IAs usadas', 'IAs pagadas'
+        )
+        st.plotly_chart(fig4, use_container_width=True)
+    
+    #Descarga de mapas    
+    if esta_autenticado():
+        st.markdown("---")
+        st.markdown("### 📥 Descarga de Datos (Administrador)")
+        mostrar_boton_descarga()
+
+
+# Funciones de la Encuesta
+
+def mostrar_encuesta():
+    """Muestra el formulario de encuesta"""
+    if 'encuesta_page' not in st.session_state:
+        st.session_state.encuesta_page = 0
+    
+    if st.session_state.encuesta_page == 0:
+        pagina_intro()
+    elif st.session_state.encuesta_page == 1:
+        pagina_cantidad()
+    elif st.session_state.encuesta_page == 2:
+        pagina_herramientas_admin()
+    elif st.session_state.encuesta_page == 3:
+        pagina_herramientas_digitales()
+    elif st.session_state.encuesta_page == 4:
+        pagina_demograficos()
+    elif st.session_state.encuesta_page == 5:
+        pagina_gracias()
+
+def pagina_intro():
+    st.markdown("""
+    <div class="question-box">
+        <p style="line-height: 1.8;">
+            En el mundo del arte, la cultura y el emprendimiento social las personas solemos 
+            participar en múltiples espacios, proyectos u organizaciones.
+        </p>
+        <p style="line-height: 1.8; margin-top: 1rem;">
+            En este mapa queremos conocer de qué manera divides tu trabajo, qué necesidades de 
+            gestión tienes y cómo estás apropiando herramientas digitales.
+        </p>
+        <p style="line-height: 1.8; margin-top: 1rem; font-weight: 600;">
+            Te agradecemos tu participación.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Comenzar encuesta ➡️", use_container_width=True):
+        st.session_state.encuesta_page = 1
+        st.rerun()
+
+def pagina_cantidad():
+    st.markdown("""
+    <div class="question-box">
+        <p style="line-height: 1.6;">
+            Una <strong>organización</strong> tiene límites claramente definidos, división de labores 
+            y mecanismos de pertenencia establecidos. Normalmente, desarrolla múltiples proyectos.
+        </p>
+        <p style="line-height: 1.6;">
+            En cambio, un <strong>proyecto</strong> no tiene conformación formal necesariamente.
+            Pero, en general, necesitamos organizaciones para hacer proyectos.
+            A veces pertenecemos a esas organizaciones o empresas, otras veces trabajamos ahí como independientes,
+            en otras ocasiones solo nos juntamos personas para armar un proyecto completamente independiente, <strong>AUTOGESTIONADO</strong>.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("### ¿A cuántas organizaciones y proyectos perteneces? (ten en cuenta que si el proyecto lo haces dentro de una organización o empresa, no cuenta como proyecto)")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        num_org = st.number_input("Organizaciones:", min_value=0, max_value=20, value=0, key="num_org")
+    with col2:
+        num_proy = st.number_input("Proyectos:", min_value=0, max_value=20, value=0, key="num_proy")
+    
+    orgs_data = []
+    if num_org > 0:
+        st.markdown("### Organizaciones")
+        for i in range(num_org):
+            with st.expander(f"Organización {i+1}"):
+                tipo = st.selectbox(
+                    "Tipo:", 
+                    ["Emprendimiento", "Empresa pequeña (menos de 50 personas)", 
+                     "Empresa mediana (entre 50 y 100 personas)", 
+                     "Empresa grande (más de 100 personas)", "Organización pública", 
+                     "Organización educativa pública", "Organización educativa privada", 
+                     "Asociación civil, corporación o colectivo"],
+                    key=f"tipo_org_{i}"
+                )
+                cargo = st.text_input("Cargo:", key=f"cargo_org_{i}")
+                orgs_data.append({'tipo': tipo, 'cargo': cargo})
+    
+    proyectos_data = []
+    if num_proy > 0:
+        st.markdown("### Proyectos")
+        for i in range(num_proy):
+            with st.expander(f"Proyecto {i+1}"):
+                nombre = st.text_input("Nombre:", key=f"nombre_proy_{i}")
+                cargo = st.text_input("Cargo:", key=f"cargo_proy_{i}")
+                proyectos_data.append({'nombre': nombre, 'cargo': cargo})
+    
+    col_prev, col_next = st.columns([1, 1])
+    with col_prev:
+        if st.button("⬅️ Regresar", use_container_width=True):
+            st.session_state.encuesta_page = 0
+            st.rerun()
+    with col_next:
+        if num_org + num_proy > 0:
+            if st.button("Continuar ➡️", use_container_width=True):
+                if 'temp_data' not in st.session_state:
+                    st.session_state.temp_data = {}
+                st.session_state.temp_data.update({
+                    'num_organizaciones': num_org,
+                    'num_proyectos': num_proy,
+                    'organizaciones': orgs_data,
+                    'proyectos': proyectos_data
+                })
+                st.session_state.encuesta_page = 2
+                st.rerun()
+
+def pagina_herramientas_admin():
+    st.markdown("### Herramientas Administrativas y Gestivas")
+    
+    jerarquia = st.selectbox(
+        "1. ¿Cómo son tus relaciones de trabajo?",
+        ["Altamente jerarquizadas", "En general menos de 3 niveles jerárquicos",
+         "Nos repartimos los liderazgos y funciones", "No reconozco jerarquías"]
+    )
+    
+    planeacion = st.selectbox(
+        "2. ¿Cómo es tu forma de planeación?",
+        ["Hago o llevo un plan estratégico periódico y se revisa por la dirección",
+         "Tengo un plan estratégico que se comunica de manera oficial",
+         "Tengo un plan estratégico pero no lo comunico",
+         "Participo en el desarrollo del plan estratégico en colectivo",
+         "No tengo ninguna planeación"]
+    )
+    
+    ecosistema = st.selectbox(
+        "3. ¿Reconoces el ecosistema al que perteneces? (incluye tu sector o disciplina específica y otras)",
+        ["Participo formalmente con otras organizaciones de diferentes sectores",
+         "Participo informalmente con organizaciones de diferentes sectores",
+         "Participo con organizaciones del mismo sector",
+         "No reconozco participación con nadie más"]
+    )
+    
+    redes = st.selectbox(
+        "4. ¿Tienes una red de trabajo consolidada?",
+        ["Participo activamente con organizaciones del sector",
+         "Reconozco organizaciones pero no me reconocen",
+         "Estoy consolidando lazos",
+         "No participo con nadie"]
+    )
+    
+    funciones = st.selectbox(
+        "5. ¿Cómo son tus funciones y labores?",
+        ["Roles claramente identificados y bajo contrato",
+         "Roles identificados y formalizados",
+         "Roles informales pero identificables",
+         "Roles informales fluidos",
+         "No tengo roles definidos"]
+    )
+    
+    liderazgo = st.selectbox(
+        "6. ¿Cómo es, en general, el liderazgo en tu forma de trabajo?",
+        ["Líderes específicos para cada área",
+         "Líderes específicos según el proyecto",
+         "Liderazgo compartido por conocimiento",
+         "Sin liderazgo claro"]
+    )
+    
+    identidad = st.selectbox(
+        "7. ¿Tienes una identidad definida?",
+        ["Marca con manual definido",
+         "Marca definida, identidad informal",
+         "Una marca más bien fluida",
+         "Llevo una marca por línea de trabajo",
+         "Sin identidad definida"]
+    )
+    
+    col_prev, col_next = st.columns([1, 1])
+    with col_prev:
+        if st.button("⬅️ Regresar", use_container_width=True):
+            st.session_state.encuesta_page = 1
+            st.rerun()
+    with col_next:
+        if st.button("Continuar ➡️", use_container_width=True):
+            st.session_state.temp_data['herramientas_admin'] = {
+                'jerarquia': jerarquia,
+                'planeacion': planeacion,
+                'ecosistema': ecosistema,
+                'redes': redes,
+                'funciones': funciones,
+                'liderazgo': liderazgo,
+                'identidad': identidad
+            }
+            st.session_state.encuesta_page = 3
+            st.rerun()
+
+def pagina_herramientas_digitales():
+    st.markdown("### Uso de Herramientas Digitales")
+    
+    st.markdown("**1. ¿Qué herramientas utilizas?**")
+    herramientas = st.multiselect(
+        "Selecciona:",
+        ["Redes sociales", "Almacenamiento en la nube", 
+         "Banca en línea (recibimos pagos)", "Banca en línea (no recibimos pagos)",
+         "Correo personalizado", "Plataformas de llamadas virtuales",
+         "Software de oficina", "Software especializado"]
+    )
+    
+    if herramientas:
+        st.markdown("**2. ¿Cuáles pagas?**")
+        herramientas_pagadas = st.multiselect("Selecciona:", herramientas, key="herr_pag")
+    else:
+        herramientas_pagadas = []
+    
+    st.markdown("**3. ¿Qué inteligencias artificiales utilizas?**")
+    ias = st.multiselect(
+        "Selecciona:",
+        ["Generador de texto (ChatGPT, Claude, etc.)",
+         "Asistente de escritura",
+         "Traductor",
+         "Asistente de oficina",
+         "Generador de imágenes",
+         "Herramienta pedagógica",
+         "Herramienta de código",
+         "Otras", "Ninguna"],
+        key="ias"
+    )
+    
+    if ias and "Ninguna" not in ias:
+        st.markdown("**4. ¿Cuáles pagas?**")
+        ias_pagadas = st.multiselect(
+            "Selecciona:", 
+            [ia for ia in ias if ia != "Ninguna"], 
+            key="ias_pag"
+        )
+    else:
+        ias_pagadas = []
+    
+    st.markdown("**5. ¿Perteneces a alguna comunidad en línea?**")
+    comunidades = st.multiselect(
+        "Selecciona:",
+        ["Grupos de WhatsApp/Telegram",
+         "Grupos de difusión",
+         "Grupos de redes sociales",
+         "Comunidades especializadas en línea",
+         "Comunidades híbridas"],
+        key="comunidades"
+    )
+    
+    col_prev, col_next = st.columns([1, 1])
+    with col_prev:
+        if st.button("⬅️ Regresar", use_container_width=True):
+            st.session_state.encuesta_page = 2
+            st.rerun()
+    with col_next:
+        if st.button("Continuar ➡️", use_container_width=True):
+            st.session_state.temp_data['herramientas_digitales'] = {
+                'herramientas': herramientas,
+                'herramientas_pagadas': herramientas_pagadas,
+                'ias': ias,
+                'ias_pagadas': ias_pagadas,
+                'comunidades': comunidades,
+                'num_herramientas': len(herramientas),
+                'num_ias': len([ia for ia in ias if ia != "Ninguna"]),
+                'num_ias_pagadas': len(ias_pagadas),
+                'num_comunidades': len(comunidades)
+            }
+            st.session_state.encuesta_page = 4
+            st.rerun()
+
+def pagina_demograficos():
+    st.markdown("### Datos Demográficos")
+    st.caption("Campos con * son obligatorios")
+    
+    st.markdown("#### Información obligatoria")
+    pais = st.text_input("País *", placeholder="Ej: Colombia, México")
+    ciudad = st.text_input("Ciudad *", placeholder="Ej: Bogotá, CDMX")
+    edad = st.selectbox(
+        "Rango de edad *",
+        ["Selecciona...", "18-24 años", "25-34 años", "35-44 años", 
+         "45-54 años", "55-64 años", "65+ años"]
+    )
+    nivel_academico = st.selectbox(
+        "Nivel académico *",
+        ["Selecciona...", "Sin estudios formales", "Primaria", "Secundaria",
+         "Preparatoria/Bachillerato", "Técnico", "Licenciatura/Grado",
+         "Maestría/Posgrado", "Doctorado"]
+    )
+    
+    st.markdown("#### Información opcional")
+    nombre = st.text_input("Nombre")
+    correo = st.text_input("Correo electrónico")
+    telefono = st.text_input("Teléfono")
+    entrevista = st.radio("¿Te contactamos para entrevistas?", ["No", "Sí"])
+    convocatorias = st.multiselect(
+        "¿Te interesa participar en?",
+        ["Talleres de autogestión", "Ferias de arte"]
+    )
+    
+    col_prev, col_next = st.columns([1, 1])
+    with col_prev:
+        if st.button("⬅️ Regresar", use_container_width=True):
+            st.session_state.encuesta_page = 3
+            st.rerun()
+    with col_next:
+        campos_completos = (
+            pais and ciudad and 
+            edad != "Selecciona..." and 
+            nivel_academico != "Selecciona..."
+        )
+        
+        if campos_completos:
+            if st.button("Finalizar ✅", use_container_width=True):
+                respuesta_completa = {
+                    **st.session_state.temp_data,
+                    'demograficos': {
+                        'pais': pais,
+                        'ciudad': ciudad,
+                        'edad': edad,
+                        'nivel_academico': nivel_academico,
+                        'nombre': nombre,
+                        'correo': correo,
+                        'telefono': telefono,
+                        'entrevista': entrevista,
+                        'convocatorias': convocatorias,
+                        'timestamp': datetime.now().isoformat()
+                    }
+                }
+                
+                # Guardar respuesta (aquí conectar con Google Sheets)
+                if 'datos' not in st.session_state:
+                    st.session_state.datos = {'respuestas': []}
+                st.session_state.datos['respuestas'].append(respuesta_completa)
+                
+                st.session_state.encuesta_page = 5
+                st.rerun()
+        else:
+            st.button("Finalizar ✅", use_container_width=True, disabled=True)
+
+def pagina_gracias():
+    st.markdown("""
+    <div class="thanks-message">
+        ¡Muchas gracias por responder y apoyarnos con este estudio, con él queremos mejorar nuestras formas de autogestión!<br>
+        Ahora navega por nuestros mapeos
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Ver mapeos y resultados", use_container_width=True):
+        st.session_state.page = 'vista_mapas'
+        st.rerun()
+
+def run():
+    """Función principal del mapeo"""
+    st.markdown('<div class="mapeo-title">Mapeo de Gestión Cultural y Digital en Latinoamérica</div>', 
+                unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="mapeo-description">
+        En este mapeo medimos el nivel de formalización en el mundo del arte y la cultura, 
+        y lo comparamos con el nivel de digitalización.
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("📝 Responder Encuesta", use_container_width=True, type="primary"):
+        st.session_state.page = 'encuesta'
+        st.session_state.encuesta_page = 0
+        st.rerun()
+    
+    st.markdown("---")
+    
+    if st.session_state.get('page') == 'encuesta':
+        mostrar_encuesta()
+    else:
+        mostrar_mapas()
