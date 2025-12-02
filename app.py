@@ -179,7 +179,7 @@ st.markdown("""
         padding: 1rem;
         border-radius: 8px;
         font-family: 'Roboto Slab', serif;
-        color: #333;
+        color: black;
         text-align: center;
         margin-bottom: 1rem;
         font-size: 1rem;
