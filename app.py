@@ -5,6 +5,110 @@ import plotly.graph_objects as go
 import hashlib
 import io
 
+# ==================== AUTENTICACIÓN ====================
+
+ADMIN_USER = "admin_tramas"
+ADMIN_PASSWORD = "tramas2025"
+
+def verificar_credenciales(username, password):
+    return username == ADMIN_USER and password == ADMIN_PASSWORD
+
+def inicializar_sesion():
+    if 'autenticado' not in st.session_state:
+        st.session_state.autenticado = False
+    if 'username' not in st.session_state:
+        st.session_state.username = None
+
+def login():
+    st.session_state.autenticado = True
+    st.session_state.username = ADMIN_USER
+
+def logout():
+    st.session_state.autenticado = False
+    st.session_state.username = None
+
+def esta_autenticado():
+    return st.session_state.get('autenticado', False)
+
+# ==================== EXPORTACIÓN CSV ====================
+
+def preparar_datos_csv(respuestas):
+    if not respuestas:
+        return None
+    
+    datos_procesados = []
+    
+    for respuesta in respuestas:
+        dato = {
+            'timestamp': respuesta.get('timestamp', ''),
+            'pais': respuesta.get('pais', ''),
+            'ciudad': respuesta.get('ciudad', ''),
+            'edad': respuesta.get('edad', ''),
+            'nivel_academico': respuesta.get('nivel_academico', ''),
+            'num_organizaciones': respuesta.get('num_organizaciones', 0),
+            'num_proyectos': respuesta.get('num_proyectos', 0),
+            'jerarquia': respuesta.get('jerarquia', ''),
+            'planeacion': respuesta.get('planeacion', ''),
+            'num_herramientas': respuesta.get('num_herramientas', 0),
+            'num_comunidades': respuesta.get('num_comunidades', 0),
+            'num_ias': respuesta.get('num_ias', 0),
+            'num_ias_pagadas': respuesta.get('num_ias_pagadas', 0),
+            'nivel_formalizacion': respuesta.get('nivel_formalizacion', 0),
+            'nivel_digitalizacion': respuesta.get('nivel_digitalizacion', 0),
+            'tipo_org_score': respuesta.get('tipo_org_score', 0)
+        }
+        datos_procesados.append(dato)
+    
+    return pd.DataFrame(datos_procesados)
+
+def generar_csv(df):
+    if df is None or df.empty:
+        return None
+    buffer = io.StringIO()
+    df.to_csv(buffer, index=False, encoding='utf-8-sig')
+    buffer.seek(0)
+    return buffer.getvalue()
+
+def mostrar_boton_descarga():
+    if not esta_autenticado():
+        return
+    
+    respuestas = st.session_state.get('datos', {}).get('respuestas', [])
+    
+    if not respuestas:
+        st.info("ℹ️ No hay datos disponibles para descargar")
+        return
+    
+    df = preparar_datos_csv(respuestas)
+    
+    if df is None or df.empty:
+        st.warning("⚠️ No hay datos procesados para descargar")
+        return
+    
+    csv_data = generar_csv(df)
+    
+    if csv_data:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"mapeo_gestion_cultural_{timestamp}.csv"
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.success(f"📊 **{len(df)} respuestas** listas para descargar")
+        
+        with col2:
+            st.download_button(
+                label="⬇️ Descargar CSV",
+                data=csv_data,
+                file_name=nombre_archivo,
+                mime="text/csv",
+                use_container_width=True
+            )
+        
+        with st.expander("👁️ Vista previa de los datos"):
+            st.dataframe(df.head(10), use_container_width=True)
+            st.caption(f"Mostrando las primeras 10 de {len(df)} filas")
+
 # ==================== CONFIGURACIÓN ====================
 st.set_page_config(
     page_title="TRAMAS - Mapeos Sociales",
@@ -154,160 +258,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ==================== PÁGINA INTRO ====================
-elif st.session_state.seccion == 'intro':
-    st.markdown('<div class="mapeo-title">TRAMAS</div>', unsafe_allow_html=True)
-    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #666;">Tejidos en Red: Análisis y Mapeos Sociales</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="question-box">
-        <h3 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Bienvenida a TRAMAS</h3>
-        <p style="line-height: 1.8;">
-            TRAMAS es una plataforma de mapeos sociales para conocer redes y organizaciones culturales, 
-            sociales y creativas en América Latina. Es realizada por académicos y académicas de la región.
-            Aquí podrás participar en diferentes mapeos y conocer los resultados de estas investigaciones colaborativas.
-        </p>
-        <p style="line-height: 1.8; margin-top: 1rem;">
-            Selecciona un mapeo del menú lateral para comenzar.
-            Te agradecemos todo el apoyo, tu aporte es esencial para nuestro trabajo.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+# ==================== INICIALIZACIÓN ====================
+if 'seccion' not in st.session_state:
+    st.session_state.seccion = 'intro'
+if 'page' not in st.session_state:
+    st.session_state.page = None
+if 'encuesta_page' not in st.session_state:
+    st.session_state.encuesta_page = 0
+if 'temp_data' not in st.session_state:
+    st.session_state.temp_data = {}
+if 'datos' not in st.session_state:
+    st.session_state.datos = {'respuestas': []}
 
-# ==================== AUTENTICACIÓN ====================
-
-# Credenciales del administrador (cambiar en producción)
-ADMIN_USER = "admin_tramas"
-ADMIN_PASSWORD = "tramas2025"  # ⚠️ CAMBIAR EN PRODUCCIÓN
-
-def verificar_credenciales(username, password):
-    """Verifica si las credenciales son correctas"""
-    return username == ADMIN_USER and password == ADMIN_PASSWORD
-
-def inicializar_sesion():
-    """Inicializa el estado de sesión para autenticación"""
-    if 'autenticado' not in st.session_state:
-        st.session_state.autenticado = False
-    if 'username' not in st.session_state:
-        st.session_state.username = None
-
-def login():
-    """Proceso de login del usuario"""
-    st.session_state.autenticado = True
-    st.session_state.username = ADMIN_USER
-
-def logout():
-    """Proceso de logout del usuario"""
-    st.session_state.autenticado = False
-    st.session_state.username = None
-
-def esta_autenticado():
-    """Verifica si hay una sesión activa"""
-    return st.session_state.get('autenticado', False)
-
-# ==================== EXPORTACIÓN CSV ====================
-
-def preparar_datos_csv(respuestas):
-    """
-    Prepara los datos para exportación CSV
-    """
-    if not respuestas:
-        return None
-    
-    datos_procesados = []
-    
-    for respuesta in respuestas:
-        # Datos demográficos
-        dato = {
-            'timestamp': respuesta.get('timestamp', ''),
-            'pais': respuesta.get('pais', ''),
-            'ciudad': respuesta.get('ciudad', ''),
-            'edad': respuesta.get('edad', ''),
-            'nivel_academico': respuesta.get('nivel_academico', ''),
-            
-            # Datos organizacionales
-            'num_organizaciones': respuesta.get('num_organizaciones', 0),
-            'num_proyectos': respuesta.get('num_proyectos', 0),
-            
-            # Herramientas administrativas
-            'jerarquia': respuesta.get('jerarquia', ''),
-            'planeacion': respuesta.get('planeacion', ''),
-            
-            # Digitalización
-            'num_herramientas': respuesta.get('num_herramientas', 0),
-            'num_comunidades': respuesta.get('num_comunidades', 0),
-            'num_ias': respuesta.get('num_ias', 0),
-            'num_ias_pagadas': respuesta.get('num_ias_pagadas', 0),
-            
-            # Índices calculados
-            'nivel_formalizacion': respuesta.get('nivel_formalizacion', 0),
-            'nivel_digitalizacion': respuesta.get('nivel_digitalizacion', 0),
-            'tipo_org_score': respuesta.get('tipo_org_score', 0)
-        }
-        
-        datos_procesados.append(dato)
-    
-    return pd.DataFrame(datos_procesados)
-
-def generar_csv(df):
-    """Genera un archivo CSV en memoria para descarga"""
-    if df is None or df.empty:
-        return None
-    
-    buffer = io.StringIO()
-    df.to_csv(buffer, index=False, encoding='utf-8-sig')
-    buffer.seek(0)
-    return buffer.getvalue()
-
-def mostrar_boton_descarga():
-    """
-    Muestra el botón de descarga de datos
-    Solo visible para usuarios autenticados
-    """
-    if not esta_autenticado():
-        return
-    
-    # Obtener datos
-    respuestas = st.session_state.get('respuestas', [])
-    
-    if not respuestas:
-        st.info("ℹ️ No hay datos disponibles para descargar")
-        return
-    
-    # Preparar datos
-    df = preparar_datos_csv(respuestas)
-    
-    if df is None or df.empty:
-        st.warning("⚠️ No hay datos procesados para descargar")
-        return
-    
-    # Generar CSV
-    csv_data = generar_csv(df)
-    
-    if csv_data:
-        # Nombre del archivo con timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        nombre_archivo = f"mapeo_gestion_cultural_{timestamp}.csv"
-        
-        # Mostrar información y botón
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            st.success(f"📊 **{len(df)} respuestas** listas para descargar")
-        
-        with col2:
-            st.download_button(
-                label="⬇️ Descargar CSV",
-                data=csv_data,
-                file_name=nombre_archivo,
-                mime="text/csv",
-                use_container_width=True
-            )
-        
-        # Mostrar preview de los datos
-        with st.expander("👁️ Vista previa de los datos"):
-            st.dataframe(df.head(10), use_container_width=True)
-            st.caption(f"Mostrando las primeras 10 de {len(df)} filas")
+inicializar_sesion()
 
 # ==================== SIDEBAR ====================
 with st.sidebar:
@@ -321,13 +284,15 @@ with st.sidebar:
     st.markdown("---")
     
     if st.button("🏠 Inicio", use_container_width=True, key="btn_inicio"):
+        st.session_state.seccion = 'intro'
         if 'page' in st.session_state:
-            del st.session_state['page']
+            st.session_state.page = None
         if 'encuesta_page' in st.session_state:
-            del st.session_state['encuesta_page']
+            st.session_state.encuesta_page = 0
         st.rerun()
     
     if st.button("📊 Gestión Cultural y Digital", use_container_width=True, key="btn_mapeo1"):
+        st.session_state.seccion = 'mapeo1'
         st.session_state.page = 'vista_mapas'
         st.rerun()
     
@@ -366,16 +331,9 @@ with st.sidebar:
         </a>
         """, unsafe_allow_html=True)
     
-    # ✅ ==================== SISTEMA DE AUTENTICACIÓN (NUEVO) ====================
-    
-    # Inicializar sesión
-    inicializar_sesion()
-    
     st.markdown("---")
     
-    # Mostrar login o info de sesión según el estado
     if esta_autenticado():
-        # Usuario ya logueado - mostrar info
         st.markdown("### 👤 Sesión Activa")
         st.info(f"**Usuario:** {st.session_state.username}")
         
@@ -383,7 +341,6 @@ with st.sidebar:
             logout()
             st.rerun()
     else:
-        # No hay sesión - mostrar formulario de login
         st.markdown("### 🔐 Acceso Administrador")
         
         with st.form("login_form"):
@@ -399,6 +356,25 @@ with st.sidebar:
                 else:
                     st.error("❌ Credenciales incorrectas")
 
+# ==================== PÁGINA INTRO ====================
+if st.session_state.seccion == 'intro':
+    st.markdown('<div class="mapeo-title">TRAMAS</div>', unsafe_allow_html=True)
+    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #666;">Tejidos en Red: Análisis y Mapeos Sociales</p>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="question-box">
+        <h3 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Bienvenida a TRAMAS</h3>
+        <p style="line-height: 1.8;">
+            TRAMAS es una plataforma de mapeos sociales para conocer redes y organizaciones culturales, 
+            sociales y creativas en América Latina. Es realizada por académicos y académicas de la región.
+            Aquí podrás participar en diferentes mapeos y conocer los resultados de estas investigaciones colaborativas.
+        </p>
+        <p style="line-height: 1.8; margin-top: 1rem;">
+            Selecciona un mapeo del menú lateral para comenzar.
+            Te agradecemos todo el apoyo, tu aporte es esencial para nuestro trabajo.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==================== MAPEO GESTIÓN CULTURAL ====================
 elif st.session_state.seccion == 'mapeo1':
