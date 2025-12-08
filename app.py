@@ -277,7 +277,7 @@ with st.sidebar:
     st.markdown("""
     <div class="tramas-logo">
         <span class="tramas-logo-icon">🕸️</span>
-        <span>TRAMAS</span>
+        <span>tramas</span>
     </div>
     """, unsafe_allow_html=True)
     
@@ -378,20 +378,29 @@ if st.session_state.seccion == 'intro':
 
 # ==================== MAPEO GESTIÓN CULTURAL ====================
 elif st.session_state.seccion == 'mapeo1':
-    
+
     st.markdown('<div class="mapeo-title">Mapeo de Gestión Cultural y Digital en Latinoamérica</div>', unsafe_allow_html=True)
+
+    # Tabs para navegar entre encuesta y resultados
+    tab1, tab2 = st.tabs(["📝 Participar en Encuesta", "📊 Ver Resultados"])
+
+    with tab1:
+        mostrar_encuesta()
+
+    with tab2:
+        mostrar_mapas()
     
 # Funciones de cálculo
 def calcular_tipo_organizacion_score(tipo_org):
     scores = {
         'Empresa grande (más de 100 personas)': 10,
-        'Organización pública': -7,
         'Empresa mediana (entre 50 y 100 personas)': 8,
-        'Organización educativa privada': -2,
-        'Organización educativa pública': -5,
         'Empresa pequeña (menos de 50 personas)': 5,
-        'Asociación civil, corporación o colectivo': -10,
-        'Emprendimiento': 2
+        'Emprendimiento': 2,
+        'Organización educativa privada': -2,
+        'Asociación civil, ONG, cooperativa o colectivo': -5,
+        'Organización educativa pública': -7,
+        'Organización pública': -10
     }
     return scores.get(tipo_org, 0)
 
@@ -734,35 +743,60 @@ def pagina_intro():
     st.markdown("""
     <div class="question-box">
         <p style="line-height: 1.8;">
-            En el mundo del arte, la cultura y el emprendimiento social las personas solemos 
-            participar en múltiples espacios, proyectos u organizaciones.
+            En el mundo del arte, la cultura y el emprendimiento social las personas solemos
+            participar en múltiples espacios, proyectos u organizaciones. Esto lo hacemos por
+            necesidades financieras en muchos casos, pero también por exploraciones estéticas,
+            sociales o personales.
         </p>
         <p style="line-height: 1.8; margin-top: 1rem;">
-            En este mapa queremos conocer de qué manera divides tu trabajo, qué necesidades de 
-            gestión tienes y cómo estás apropiando herramientas digitales.
+            Definitivamente, no todos los productos o proyectos que hacemos pueden enmarcarse
+            en un solo lugar, y por eso tenemos que dividirlos. Eso plantea grandes retos para
+            la gestión de cada uno, especialmente afectados hoy en día por la digitalización.
+        </p>
+        <p style="line-height: 1.8; margin-top: 1rem;">
+            En este mapa queremos conocer de qué manera divides tu trabajo, qué necesidades de
+            gestión tienes y cómo estás apropiando herramientas digitales. Responde de manera
+            personal pero puedes enfocarte en la organización más relevante para tu trabajo o
+            en forma general.
         </p>
         <p style="line-height: 1.8; margin-top: 1rem; font-weight: 600;">
-            Te agradecemos tu participación.
+            Te agradecemos mucho tu participación, te tomará alrededor de 15 minutos.<br>
+            Este estudio es clave para plantear mejoras a las formas de gestión cultural en Latinoamérica.
         </p>
     </div>
     """, unsafe_allow_html=True)
-    
-    if st.button("Comenzar encuesta ➡️", use_container_width=True):
+
+    if st.button("INICIAR ENCUESTA ➡️", use_container_width=True):
         st.session_state.encuesta_page = 1
         st.rerun()
 
 def pagina_cantidad():
     st.markdown("""
     <div class="question-box">
+        <h4 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Conceptos Clave</h4>
         <p style="line-height: 1.6;">
-            Una <strong>organización</strong> tiene límites claramente definidos, división de labores 
-            y mecanismos de pertenencia establecidos. Normalmente, desarrolla múltiples proyectos.
+            Ten en cuenta los siguientes conceptos para responder esta encuesta:
         </p>
-        <p style="line-height: 1.6;">
-            En cambio, un <strong>proyecto</strong> no tiene conformación formal necesariamente.
-            Pero, en general, necesitamos organizaciones para hacer proyectos.
-            A veces pertenecemos a esas organizaciones o empresas, otras veces trabajamos ahí como independientes,
-            en otras ocasiones solo nos juntamos personas para armar un proyecto completamente independiente, <strong>AUTOGESTIONADO</strong>.
+        <p style="line-height: 1.6; margin-top: 0.8rem;">
+            <strong>1. ORGANIZACIÓN:</strong> Tiene límites claramente definidos, división de labores
+            y mecanismos de pertenencia establecidos. Normalmente desarrolla múltiples proyectos.
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem;">
+            <strong>2. PROYECTO:</strong> No tiene conformación formal necesariamente. Puede ser
+            autogestionado o realizarse dentro de una organización.
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem;">
+            <strong>3. ECOSISTEMA:</strong> Un ecosistema es la agrupación de campos específicos dentro
+            del campo del arte y la cultura ubicados territorialmente. Permite agrupar redes de trabajo,
+            organizaciones y personas de múltiples disciplinas e incluir a las que no hacen parte
+            directamente del segmento. También permite que personas de otros ecosistemas entren y
+            colaboren con ellos para lograr intercambios entre territorios.
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem;">
+            <strong>4. RED:</strong> Una red es un campo de organizaciones usualmente del mismo segmento
+            o disciplina las cuales colaboran entre sí para desarrollar proyectos específicos. En las
+            redes hay intercambios directos, mientras que en los ecosistemas no necesariamente. Los
+            ecosistemas están conformados por redes.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -781,12 +815,15 @@ def pagina_cantidad():
         for i in range(num_org):
             with st.expander(f"Organización {i+1}"):
                 tipo = st.selectbox(
-                    "Tipo:", 
-                    ["Emprendimiento", "Empresa pequeña (menos de 50 personas)", 
-                     "Empresa mediana (entre 50 y 100 personas)", 
-                     "Empresa grande (más de 100 personas)", "Organización pública", 
-                     "Organización educativa pública", "Organización educativa privada", 
-                     "Asociación civil, corporación o colectivo"],
+                    "Tipo:",
+                    ["Empresa grande (más de 100 personas)",
+                     "Empresa mediana (entre 50 y 100 personas)",
+                     "Empresa pequeña (menos de 50 personas)",
+                     "Emprendimiento",
+                     "Organización educativa privada",
+                     "Asociación civil, ONG, cooperativa o colectivo",
+                     "Organización educativa pública",
+                     "Organización pública"],
                     key=f"tipo_org_{i}"
                 )
                 cargo = st.text_input("Cargo:", key=f"cargo_org_{i}")
@@ -1054,16 +1091,3 @@ def pagina_gracias():
         st.session_state.page = 'vista_mapas'
         st.rerun()
 
-def run():
-    """Función principal del mapeo"""
-    st.markdown('<div class="mapeo-title">Mapeo de Gestión Cultural y Digital en Latinoamérica</div>', 
-                unsafe_allow_html=True)
-    st.session_state.encuesta_page = 0
-    st.rerun()
-    
-    st.markdown("---")
-    
-    if st.session_state.get('page') == 'encuesta':
-        mostrar_encuesta()
-    else:
-        mostrar_mapas()
