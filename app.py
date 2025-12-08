@@ -663,7 +663,7 @@ def pagina_herramientas_digitales():
     st.markdown("**1. ¿Qué herramientas utilizas?**")
     herramientas = st.multiselect(
         "Selecciona:",
-        ["Redes sociales", "Almacenamiento en la nube",
+        ["Redes sociales", "Página web", "Almacenamiento en la nube",
          "Banca en línea (recibimos pagos)", "Banca en línea (no recibimos pagos)",
          "Correo personalizado", "Plataformas de llamadas virtuales",
          "Software de oficina", "Software especializado"]
