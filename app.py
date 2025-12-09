@@ -98,10 +98,17 @@ SCOPES = [
     'https://www.googleapis.com/auth/drive'
 ]
 
-@st.cache_resource
 def conectar_google_sheets():
     """Conecta con Google Sheets usando las credenciales de Streamlit Secrets"""
     try:
+        # Verificar que existan los secrets
+        if "gcp_service_account" not in st.secrets:
+            st.warning("⚠️ No se encontró 'gcp_service_account' en Secrets")
+            return None
+        if "google_sheets" not in st.secrets:
+            st.warning("⚠️ No se encontró 'google_sheets' en Secrets")
+            return None
+
         credentials = Credentials.from_service_account_info(
             st.secrets["gcp_service_account"],
             scopes=SCOPES
@@ -112,7 +119,7 @@ def conectar_google_sheets():
         sheet = client.open_by_key(spreadsheet_id).worksheet("Hoja1")
         return sheet
     except Exception as e:
-        st.error(f"Error conectando con Google Sheets: {e}")
+        st.error(f"❌ Error conectando con Google Sheets: {e}")
         return None
 
 def guardar_respuesta_sheets(respuesta):
