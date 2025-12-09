@@ -6,6 +6,99 @@ import hashlib
 import io
 import pycountry
 import geonamescache
+import gspread
+
+from google.oauth2.service_account import Credentials
+
+ 
+
+# ==================== GOOGLE SHEETS ====================
+SCOPES = [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive'
+]
+@st.cache_resource
+
+def conectar_google_sheets():
+    """Conecta con Google Sheets usando las credenciales de Streamlit Secrets"""
+    try:
+        credentials = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=SCOPES
+        )
+        client = gspread.authorize(credentials)
+        spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
+        sheet = client.open_by_key(spreadsheet_id).sheet1
+        return sheet
+    except Exception as e:
+        st.error(f"Error conectando con Google Sheets: {e}")
+        return None
+
+def guardar_respuesta_sheets(respuesta):
+    """Guarda una respuesta en Google Sheets"""
+    sheet = conectar_google_sheets()
+    if sheet is None:
+        return False
+    try:
+        # Preparar los datos para la fila
+        fila = [
+            respuesta.get('demograficos', {}).get('timestamp', ''),
+            respuesta.get('num_organizaciones', 0),
+            respuesta.get('num_proyectos', 0),
+            '|'.join([org.get('tipo', '') for org in respuesta.get('organizaciones', [])]),
+            '|'.join([org.get('cargo', '') for org in respuesta.get('organizaciones', [])]),
+            '|'.join([proy.get('nombre', '') for proy in respuesta.get('proyectos', [])]),
+            '|'.join([proy.get('cargo', '') for proy in respuesta.get('proyectos', [])]),
+            respuesta.get('herramientas_admin', {}).get('jerarquia', ''),
+            respuesta.get('herramientas_admin', {}).get('planeacion', ''),
+            respuesta.get('herramientas_admin', {}).get('ecosistema', ''),
+            respuesta.get('herramientas_admin', {}).get('redes', ''),
+            respuesta.get('herramientas_admin', {}).get('funciones', ''),
+            respuesta.get('herramientas_admin', {}).get('liderazgo', ''),
+            respuesta.get('herramientas_admin', {}).get('identidad', ''),
+            '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas', [])),
+            '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas_pagadas', [])),
+            '|'.join(respuesta.get('herramientas_digitales', {}).get('ias', [])),
+            '|'.join(respuesta.get('herramientas_digitales', {}).get('ias_pagadas', [])),
+            '|'.join(respuesta.get('herramientas_digitales', {}).get('comunidades', [])),
+            respuesta.get('demograficos', {}).get('pais', ''),
+            respuesta.get('demograficos', {}).get('ciudad', ''),
+            respuesta.get('demograficos', {}).get('edad', ''),
+            respuesta.get('demograficos', {}).get('nivel_academico', ''),
+            respuesta.get('demograficos', {}).get('nombre', ''),
+            respuesta.get('demograficos', {}).get('correo', ''),
+            respuesta.get('demograficos', {}).get('telefono', ''),
+            respuesta.get('demograficos', {}).get('entrevista', ''),
+            '|'.join(respuesta.get('demograficos', {}).get('convocatorias', [])),
+            calcular_tipo_org_score_total(respuesta.get('organizaciones', [])),
+            calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {})),
+            calcular_nivel_digitalizacion(respuesta.get('herramientas_digitales', {}))
+        ]
+        sheet.append_row(fila)
+        return True
+    except Exception as e:
+        st.error(f"Error guardando respuesta: {e}")
+        return False
+
+def cargar_respuestas_sheets():
+    """Carga todas las respuestas desde Google Sheets"""
+    sheet = conectar_google_sheets()
+    if sheet is None:
+        return []
+    try:
+        # Obtener todos los datos
+        datos = sheet.get_all_records()
+        return datos
+    except Exception as e:
+        st.error(f"Error cargando respuestas: {e}")
+        return []
+
+def calcular_tipo_org_score_total(organizaciones):
+    """Calcula el score total de tipo de organización"""
+    total = 0
+    for org in organizaciones:
+        total += calcular_tipo_organizacion_score(org.get('tipo', ''))
+    return total
 
 # ==================== AUTENTICACIÓN ====================
 
