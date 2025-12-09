@@ -25,7 +25,7 @@ def conectar_google_sheets():
         )
         client = gspread.authorize(credentials)
         spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
-        sheet = client.open_by_key(spreadsheet_id).sheet1
+        sheet = client.open_by_key(spreadsheet_id).Hoja1
         return sheet
     except Exception as e:
         st.error(f"Error conectando con Google Sheets: {e}")
