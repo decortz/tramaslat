@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import hashlib
 import io
+import pycountry
+import geonamescache
 
 # ==================== AUTENTICACIÓN ====================
 
@@ -522,7 +524,7 @@ def pagina_cantidad():
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### ¿A cuántas organizaciones y proyectos perteneces? (ten en cuenta que si el proyecto lo haces dentro de una organización o empresa, no cuenta como proyecto)")
+    st.markdown("### ¿A cuántas organizaciones perteneces formal o informalmente y en cuántos proyectos estás participando?")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -579,7 +581,7 @@ def pagina_cantidad():
                 st.rerun()
 
 def pagina_herramientas_admin():
-    st.markdown("### Herramientas Administrativas y Gestivas")
+    st.markdown("### Herramientas Administrativas y Gestivas (responde de manera general o pensando en la organización o proyecto principal)")
 
     jerarquia = st.selectbox(
         "1. ¿Cómo son tus relaciones de trabajo?",
@@ -736,8 +738,25 @@ def pagina_demograficos():
     st.caption("Campos con * son obligatorios")
 
     st.markdown("#### Información obligatoria")
-    pais = st.text_input("País *", placeholder="Ej: Colombia, México")
-    ciudad = st.text_input("Ciudad *", placeholder="Ej: Bogotá, CDMX")
+    # Instancia de geonames
+    gc = geonamescache.GeonamesCache()
+    # Lista de países con pycountry
+    paises = sorted([country.name for country in pycountry.countries])
+    pais = st.selectbox("País *", paises)
+    # Obtener código ISO del país seleccionado
+    country_obj = pycountry.countries.get(name=pais)
+    country_code = country_obj.alpha_2 if country_obj else None
+    # Obtener ciudades del país via geonames
+    if country_code:
+        all_cities = gc.get_cities()
+        ciudades = sorted([
+            city["name"] 
+            for city in all_cities.values() 
+            if city["countrycode"] == country_code
+        ])
+    else:
+        ciudades = []
+    ciudad = st.selectbox("Ciudad *", ciudades if ciudades else ["Seleccione un país"])
     edad = st.selectbox(
         "Rango de edad *",
         ["Selecciona...", "18-24 años", "25-34 años", "35-44 años",
