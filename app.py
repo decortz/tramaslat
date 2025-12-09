@@ -6,8 +6,10 @@ import hashlib
 import io
 import gspread
 from google.oauth2.service_account import Credentials
+import pycountry
+import geonamescache
 
-# ==================== FUNCIONES DE CÁLCULO (deben ir primero) ====================
+# ==================== FUNCIONES DE CÁLCULO ====================
 
 def calcular_tipo_organizacion_score(tipo_org):
     scores = {
@@ -86,42 +88,80 @@ def calcular_tipo_org_score_total(organizaciones):
 
 # ==================== GOOGLE SHEETS ====================
 
-import pycountry
-import geonamescache
-import gspread
-
-from google.oauth2.service_account import Credentials 
-
-# ==================== GOOGLE SHEETS ====================
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
 
-@st.cache_resource
 def conectar_google_sheets():
     """Conecta con Google Sheets usando las credenciales de Streamlit Secrets"""
     try:
+        # Verificar que existan los secrets
+        if "gcp_service_account" not in st.secrets:
+            st.error("❌ No se encontró 'gcp_service_account' en Secrets. Configura los secrets en Streamlit Cloud.")
+            return None
+        if "google_sheets" not in st.secrets:
+            st.error("❌ No se encontró 'google_sheets' en Secrets. Configura los secrets en Streamlit Cloud.")
+            return None
+
+        # Verificar campos requeridos del service account
+        required_fields = ["type", "project_id", "private_key", "client_email"]
+        for field in required_fields:
+            if field not in st.secrets["gcp_service_account"]:
+                st.error(f"❌ Falta el campo '{field}' en gcp_service_account")
+                return None
+
         credentials = Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"],
+            dict(st.secrets["gcp_service_account"]),
             scopes=SCOPES
         )
         client = gspread.authorize(credentials)
         spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
         sheet = client.open_by_key(spreadsheet_id).sheet1
-        sheet = client.open_by_key(spreadsheet_id).worksheet("Hoja1")
         return sheet
-    except Exception as e:
-        st.error(f"Error conectando con Google Sheets: {e}")
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error("❌ No se encontró la hoja de cálculo. Verifica el ID del spreadsheet.")
         return None
+    except gspread.exceptions.APIError as e:
+        st.error(f"❌ Error de API de Google: {e}")
+        st.info("💡 Asegúrate de compartir el Google Sheet con el email de la cuenta de servicio.")
+        return None
+    except Exception as e:
+        st.error(f"❌ Error conectando con Google Sheets: {type(e).__name__}: {e}")
+        return None
+
+def inicializar_headers_sheets(sheet):
+    """Inicializa los headers en la hoja si está vacía"""
+    headers = [
+        'timestamp', 'num_organizaciones', 'num_proyectos', 'organizaciones_tipos',
+        'organizaciones_cargos', 'proyectos_nombres', 'proyectos_cargos', 'jerarquia',
+        'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'identidad',
+        'herramientas', 'herramientas_pagadas', 'ias', 'ias_pagadas', 'comunidades',
+        'pais', 'ciudad', 'edad', 'nivel_academico', 'nombre', 'correo', 'telefono',
+        'entrevista', 'convocatorias', 'tipo_org_score', 'nivel_formalizacion',
+        'nivel_digitalizacion'
+    ]
+    try:
+        existing = sheet.row_values(1)
+        if not existing:
+            sheet.append_row(headers)
+            return True
+        return True
+    except Exception:
+        sheet.append_row(headers)
+        return True
 
 def guardar_respuesta_sheets(respuesta):
     """Guarda una respuesta en Google Sheets"""
     sheet = conectar_google_sheets()
     if sheet is None:
+        st.error("❌ No se pudo conectar con Google Sheets para guardar")
         return False
 
     try:
+        # Inicializar headers si es necesario
+        inicializar_headers_sheets(sheet)
+
         # Preparar los datos para la fila
         fila = [
             respuesta.get('demograficos', {}).get('timestamp', ''),
@@ -158,14 +198,14 @@ def guardar_respuesta_sheets(respuesta):
         ]
 
         sheet.append_row(fila)
+        st.success("✅ Respuesta guardada correctamente")
         return True
+    except gspread.exceptions.APIError as e:
+        st.error(f"❌ Error de API al guardar: {e}")
+        st.info("💡 Verifica que la cuenta de servicio tenga permisos de Editor en el Sheet")
+        return False
     except Exception as e:
-        st.error(f"Error guardando respuesta: {e}")
-        sheet.append_row(fila)
-        return True
-    except Exception as e:
-        st.error("Error guardando respuesta")
-        st.write("Error detallado:", e)
+        st.error(f"❌ Error guardando respuesta: {type(e).__name__}: {e}")
         return False
 
 def cargar_respuestas_sheets():
@@ -175,19 +215,19 @@ def cargar_respuestas_sheets():
         return []
 
     try:
-        # Obtener todos los datos
+        # Verificar si hay datos
+        all_values = sheet.get_all_values()
+        if len(all_values) <= 1:  # Solo headers o vacío
+            return []
+
         datos = sheet.get_all_records()
         return datos
-    except Exception as e:
-        st.error(f"Error cargando respuestas: {e}")
+    except gspread.exceptions.APIError as e:
+        st.error(f"❌ Error de API al cargar datos: {e}")
         return []
-
-def calcular_tipo_org_score_total(organizaciones):
-    """Calcula el score total de tipo de organización"""
-    total = 0
-    for org in organizaciones:
-        total += calcular_tipo_organizacion_score(org.get('tipo', ''))
-    return total
+    except Exception as e:
+        st.error(f"❌ Error cargando respuestas: {type(e).__name__}: {e}")
+        return []
 
 # ==================== AUTENTICACIÓN ====================
 
@@ -221,7 +261,6 @@ def preparar_datos_csv(respuestas):
         return None
 
     datos_procesados = []
-
     for respuesta in respuestas:
         dato = {
             'timestamp': respuesta.get('timestamp', ''),
@@ -233,10 +272,6 @@ def preparar_datos_csv(respuestas):
             'num_proyectos': respuesta.get('num_proyectos', 0),
             'jerarquia': respuesta.get('jerarquia', ''),
             'planeacion': respuesta.get('planeacion', ''),
-            'num_herramientas': respuesta.get('num_herramientas', 0),
-            'num_comunidades': respuesta.get('num_comunidades', 0),
-            'num_ias': respuesta.get('num_ias', 0),
-            'num_ias_pagadas': respuesta.get('num_ias_pagadas', 0),
             'nivel_formalizacion': respuesta.get('nivel_formalizacion', 0),
             'nivel_digitalizacion': respuesta.get('nivel_digitalizacion', 0),
             'tipo_org_score': respuesta.get('tipo_org_score', 0)
@@ -257,7 +292,7 @@ def mostrar_boton_descarga():
     if not esta_autenticado():
         return
 
-    respuestas = st.session_state.get('datos', {}).get('respuestas', [])
+    respuestas = cargar_respuestas_sheets()
 
     if not respuestas:
         st.info("ℹ️ No hay datos disponibles para descargar")
@@ -276,10 +311,8 @@ def mostrar_boton_descarga():
         nombre_archivo = f"mapeo_gestion_cultural_{timestamp}.csv"
 
         col1, col2 = st.columns([2, 1])
-
         with col1:
             st.success(f"📊 **{len(df)} respuestas** listas para descargar")
-
         with col2:
             st.download_button(
                 label="⬇️ Descargar CSV",
@@ -299,7 +332,6 @@ def crear_scatter_dual(df_filtrado):
     """Crea scatter plot dual con puntos de Formalización y Digitalización"""
     fig = go.Figure()
 
-    # Puntos de Formalización (#5D80B5)
     fig.add_trace(go.Scatter(
         x=df_filtrado['tipo_org_score'],
         y=df_filtrado['nivel_formalizacion'],
@@ -318,7 +350,6 @@ def crear_scatter_dual(df_filtrado):
         hovertemplate='%{text}<extra></extra>'
     ))
 
-    # Puntos de Digitalización (#A870B0)
     fig.add_trace(go.Scatter(
         x=df_filtrado['tipo_org_score'],
         y=df_filtrado['nivel_digitalizacion'],
@@ -338,8 +369,8 @@ def crear_scatter_dual(df_filtrado):
     ))
 
     fig.update_layout(
-        xaxis_title="Tipo de organización: de muy burocratizada a muy fluida",
-        yaxis_title="Muy formal y muy digitalizada a nada formal y muy tradicional",
+        xaxis_title="Tipo de organización: de muy gubernamental (-10) a muy empresarial (+10)",
+        yaxis_title="Nivel (0-100)",
         height=600,
         hovermode='closest',
         plot_bgcolor='white',
@@ -355,15 +386,15 @@ def crear_grafico_barras_dual(data1, data2, label1, label2, color1='#5D80B5', co
 
     fig.add_trace(go.Bar(
         name=label1,
-        x=data1.index,
-        y=data1.values,
+        x=list(data1.index),
+        y=list(data1.values),
         marker_color=color1
     ))
 
     fig.add_trace(go.Bar(
         name=label2,
-        x=data2.index,
-        y=data2.values,
+        x=list(data2.index),
+        y=list(data2.values),
         marker_color=color2
     ))
 
@@ -394,6 +425,7 @@ def filtrar_datos(df, filtros):
     return df_filtrado
 
 # ==================== FUNCIÓN MOSTRAR MAPAS ====================
+
 def mostrar_mapas():
     """Vista de mapas con gráficos y filtros"""
 
@@ -405,33 +437,19 @@ def mostrar_mapas():
         st.info("📊 Aún no hay respuestas. ¡Sé el primero en completar la encuesta!")
         return
 
-    # Preparar datos para visualización (los datos ya vienen procesados de Google Sheets)
+    # Preparar datos para visualización
     datos_procesados = []
-
     for resp in respuestas:
-        # Contar herramientas, IAs y comunidades desde las columnas separadas por |
-        herramientas_str = resp.get('herramientas', '')
-        ias_str = resp.get('ias', '')
-        ias_pagadas_str = resp.get('ias_pagadas', '')
-        comunidades_str = resp.get('comunidades', '')
+        herramientas_str = str(resp.get('herramientas', ''))
+        ias_str = str(resp.get('ias', ''))
+        ias_pagadas_str = str(resp.get('ias_pagadas', ''))
+        comunidades_str = str(resp.get('comunidades', ''))
 
         num_herramientas = len([h for h in herramientas_str.split('|') if h]) if herramientas_str else 0
         num_ias = len([i for i in ias_str.split('|') if i and i != 'Ninguna']) if ias_str else 0
         num_ias_pagadas = len([i for i in ias_pagadas_str.split('|') if i]) if ias_pagadas_str else 0
         num_comunidades = len([c for c in comunidades_str.split('|') if c]) if comunidades_str else 0
 
-    # Preparar datos para visualización
-    respuestas = st.session_state.datos['respuestas']
-    datos_procesados = []
-    for respuesta in respuestas:
-        # Calcular índices
-        nivel_form = calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {}))
-        nivel_digit = calcular_nivel_digitalizacion(respuesta.get('herramientas_digitales', {}))
-        # Calcular score de tipo de org (suma de todas las organizaciones)
-        tipo_org_score = 0
-        for org in respuesta.get('organizaciones', []):
-            tipo_org_score += calcular_tipo_organizacion_score(org.get('tipo', ''))
-        # Agregar datos procesados
         datos_procesados.append({
             'num_organizaciones': resp.get('num_organizaciones', 0),
             'num_proyectos': resp.get('num_proyectos', 0),
@@ -450,44 +468,109 @@ def mostrar_mapas():
             'edad': resp.get('edad', ''),
             'nivel_academico': resp.get('nivel_academico', '')
         })
-    # Cargar datos desde Google Sheets
-    respuestas = cargar_respuestas_sheets()
-    # Verificar si hay datos
-    if not respuestas:
-        st.info("📊 Aún no hay respuestas. ¡Sé el primero en completar la encuesta!")
+
+    df_datos = pd.DataFrame(datos_procesados)
+
+    # Filtros demográficos
+    st.markdown("### Filtros Demográficos")
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        paises_disponibles = ['Todos'] + sorted([p for p in df_datos['pais'].unique().tolist() if p])
+        filtro_pais = st.selectbox("País:", paises_disponibles, key="f_pais")
+
+    with col2:
+        if filtro_pais != 'Todos':
+            ciudades_disponibles = ['Todos'] + sorted([c for c in df_datos[df_datos['pais'] == filtro_pais]['ciudad'].unique().tolist() if c])
+        else:
+            ciudades_disponibles = ['Todos'] + sorted([c for c in df_datos['ciudad'].unique().tolist() if c])
+        filtro_ciudad = st.selectbox("Ciudad:", ciudades_disponibles, key="f_ciudad")
+
+    with col3:
+        edades_disponibles = ['Todos'] + sorted([e for e in df_datos['edad'].unique().tolist() if e])
+        filtro_edad = st.selectbox("Edad:", edades_disponibles, key="f_edad")
+
+    with col4:
+        niveles_disponibles = ['Todos'] + sorted([n for n in df_datos['nivel_academico'].unique().tolist() if n])
+        filtro_nivel = st.selectbox("Nivel académico:", niveles_disponibles, key="f_nivel")
+
+    # Aplicar filtros
+    filtros = {
+        'pais': filtro_pais,
+        'ciudad': filtro_ciudad,
+        'edad': filtro_edad,
+        'nivel_academico': filtro_nivel
+    }
+
+    df_filtrado = filtrar_datos(df_datos, filtros)
+
+    st.info(f"📊 Mostrando {len(df_filtrado)} de {len(df_datos)} respuestas")
+
+    if len(df_filtrado) == 0:
+        st.warning("No hay datos con los filtros seleccionados. Prueba con otros criterios.")
         return
 
-    # Preparar datos para visualización (los datos ya vienen procesados de Google Sheets)
-    datos_procesados = []
-    for resp in respuestas:
-        # Contar herramientas, IAs y comunidades desde las columnas separadas por |
-        herramientas_str = resp.get('herramientas', '')
-        ias_str = resp.get('ias', '')
-        ias_pagadas_str = resp.get('ias_pagadas', '')
-        comunidades_str = resp.get('comunidades', '')
-        num_herramientas = len([h for h in herramientas_str.split('|') if h]) if herramientas_str else 0
-        num_ias = len([i for i in ias_str.split('|') if i and i != 'Ninguna']) if ias_str else 0
-        num_ias_pagadas = len([i for i in ias_pagadas_str.split('|') if i]) if ias_pagadas_str else 0
-        num_comunidades = len([c for c in comunidades_str.split('|') if c]) if comunidades_str else 0
-        datos_procesados.append({
-            'num_organizaciones': resp.get('num_organizaciones', 0),
-            'num_proyectos': resp.get('num_proyectos', 0),
-            'total_entidades': resp.get('num_organizaciones', 0) + resp.get('num_proyectos', 0),
-            'tipo_org_score': resp.get('tipo_org_score', 0),
-            'nivel_formalizacion': resp.get('nivel_formalizacion', 0),
-            'nivel_digitalizacion': resp.get('nivel_digitalizacion', 0),
-            'jerarquia': resp.get('jerarquia', ''),
-            'planeacion': resp.get('planeacion', ''),
-            'num_herramientas': num_herramientas,
-            'num_ias': num_ias,
-            'num_ias_pagadas': num_ias_pagadas,
-            'num_comunidades': num_comunidades,
-            'pais': resp.get('pais', ''),
-            'ciudad': resp.get('ciudad', ''),
-            'edad': resp.get('edad', ''),
-            'nivel_academico': resp.get('nivel_academico', '')
-        })
-    df_datos = pd.DataFrame(datos_procesados)
+    st.markdown("---")
+
+    # GRÁFICO PRINCIPAL
+    st.markdown("### Gráfico Principal")
+    st.markdown("""
+    <div style="background-color: #f0f0f0; padding: 0.8rem; border-radius: 8px; margin-bottom: 1rem;">
+        En este mapa medimos, por persona, qué tan formalizadas son sus relaciones
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: #5D80B5; margin: 0 3px;"></span>
+        y su nivel de digitalización
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: #A870B0; margin: 0 3px;"></span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    fig = crear_scatter_dual(df_filtrado)
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("---")
+
+    # GRÁFICOS COMPLEMENTARIOS
+    st.markdown("### Gráficos Complementarios")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("#### 1. Cantidad de organizaciones + proyectos")
+        fig1 = go.Figure(data=[
+            go.Bar(x=df_filtrado['total_entidades'].value_counts().sort_index().index.tolist(),
+                   y=df_filtrado['total_entidades'].value_counts().sort_index().values.tolist(),
+                   marker_color='#5D80B5')
+        ])
+        fig1.update_layout(showlegend=False, xaxis_title="Cantidad", yaxis_title="Frecuencia")
+        st.plotly_chart(fig1, use_container_width=True)
+
+    with col2:
+        st.markdown("#### 2. Tipos de jerarquías y planeación")
+        jer_counts = df_filtrado['jerarquia'].value_counts()
+        plan_counts = df_filtrado['planeacion'].value_counts()
+        fig2 = crear_grafico_barras_dual(jer_counts, plan_counts, 'Jerarquía', 'Planeación')
+        st.plotly_chart(fig2, use_container_width=True)
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        st.markdown("#### 3. Herramientas digitales y comunidades")
+        herr_counts = df_filtrado['num_herramientas'].value_counts().sort_index()
+        com_counts = df_filtrado['num_comunidades'].value_counts().sort_index()
+        fig3 = crear_grafico_barras_dual(herr_counts, com_counts, 'Herramientas', 'Comunidades')
+        st.plotly_chart(fig3, use_container_width=True)
+
+    with col4:
+        st.markdown("#### 4. IAs utilizadas y IAs pagadas")
+        ia_counts = df_filtrado['num_ias'].value_counts().sort_index()
+        ia_pag_counts = df_filtrado['num_ias_pagadas'].value_counts().sort_index()
+        fig4 = crear_grafico_barras_dual(ia_counts, ia_pag_counts, 'IAs usadas', 'IAs pagadas')
+        st.plotly_chart(fig4, use_container_width=True)
+
+    # Descarga para admin
+    if esta_autenticado():
+        st.markdown("---")
+        st.markdown("### 📥 Descarga de Datos (Administrador)")
+        mostrar_boton_descarga()
 
 # ==================== FUNCIONES DE LA ENCUESTA ====================
 
@@ -558,15 +641,11 @@ def pagina_cantidad():
         <p style="line-height: 1.6; margin-top: 0.8rem;">
             <strong>3. ECOSISTEMA:</strong> Un ecosistema es la agrupación de campos específicos dentro
             del campo del arte y la cultura ubicados territorialmente. Permite agrupar redes de trabajo,
-            organizaciones y personas de múltiples disciplinas e incluir a las que no hacen parte
-            directamente del segmento. También permite que personas de otros ecosistemas entren y
-            colaboren con ellos para lograr intercambios entre territorios.
+            organizaciones y personas de múltiples disciplinas.
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem;">
             <strong>4. RED:</strong> Una red es un campo de organizaciones usualmente del mismo segmento
-            o disciplina las cuales colaboran entre sí para desarrollar proyectos específicos. En las
-            redes hay intercambios directos, mientras que en los ecosistemas no necesariamente. Los
-            ecosistemas están conformados por redes.
+            o disciplina las cuales colaboran entre sí para desarrollar proyectos específicos.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -628,7 +707,7 @@ def pagina_cantidad():
                 st.rerun()
 
 def pagina_herramientas_admin():
-    st.markdown("### Herramientas Administrativas y Gestivas (responde de manera general o pensando en la organización o proyecto principal)")
+    st.markdown("### Herramientas Administrativas y Gestivas")
 
     jerarquia = st.selectbox(
         "1. ¿Cómo son tus relaciones de trabajo?",
@@ -646,7 +725,7 @@ def pagina_herramientas_admin():
     )
 
     ecosistema = st.selectbox(
-        "3. ¿Reconoces el ecosistema al que perteneces? (incluye tu sector o disciplina específica y otras)",
+        "3. ¿Reconoces el ecosistema al que perteneces?",
         ["Participo formalmente con otras organizaciones de diferentes sectores",
          "Participo informalmente con organizaciones de diferentes sectores",
          "Participo con organizaciones del mismo sector",
@@ -671,7 +750,7 @@ def pagina_herramientas_admin():
     )
 
     liderazgo = st.selectbox(
-        "6. ¿Cómo es, en general, el liderazgo en tu forma de trabajo?",
+        "6. ¿Cómo es el liderazgo en tu forma de trabajo?",
         ["Líderes específicos para cada área",
          "Líderes específicos según el proyecto",
          "Liderazgo compartido por conocimiento",
@@ -728,33 +807,23 @@ def pagina_herramientas_digitales():
     ias = st.multiselect(
         "Selecciona:",
         ["Generador de texto (ChatGPT, Claude, etc.)",
-         "Asistente de escritura",
-         "Traductor",
-         "Asistente de oficina",
-         "Generador de imágenes",
-         "Herramienta pedagógica",
-         "Herramienta de código",
-         "Otras", "Ninguna"],
+         "Asistente de escritura", "Traductor", "Asistente de oficina",
+         "Generador de imágenes", "Herramienta pedagógica",
+         "Herramienta de código", "Otras", "Ninguna"],
         key="ias"
     )
 
     if ias and "Ninguna" not in ias:
         st.markdown("**4. ¿Cuáles pagas?**")
-        ias_pagadas = st.multiselect(
-            "Selecciona:",
-            [ia for ia in ias if ia != "Ninguna"],
-            key="ias_pag"
-        )
+        ias_pagadas = st.multiselect("Selecciona:", [ia for ia in ias if ia != "Ninguna"], key="ias_pag")
     else:
         ias_pagadas = []
 
     st.markdown("**5. ¿Perteneces a alguna comunidad en línea?**")
     comunidades = st.multiselect(
         "Selecciona:",
-        ["Grupos de WhatsApp/Telegram",
-         "Grupos de difusión",
-         "Grupos de redes sociales",
-         "Comunidades especializadas en línea",
+        ["Grupos de WhatsApp/Telegram", "Grupos de difusión",
+         "Grupos de redes sociales", "Comunidades especializadas en línea",
          "Comunidades híbridas"],
         key="comunidades"
     )
@@ -785,25 +854,24 @@ def pagina_demograficos():
     st.caption("Campos con * son obligatorios")
 
     st.markdown("#### Información obligatoria")
-    # Instancia de geonames
-    gc = geonamescache.GeonamesCache()
+
     # Lista de países con pycountry
+    gc = geonamescache.GeonamesCache()
     paises = sorted([country.name for country in pycountry.countries])
     pais = st.selectbox("País *", paises)
-    # Obtener código ISO del país seleccionado
+
+    # Obtener ciudades del país
     country_obj = pycountry.countries.get(name=pais)
     country_code = country_obj.alpha_2 if country_obj else None
-    # Obtener ciudades del país via geonames
+
     if country_code:
         all_cities = gc.get_cities()
-        ciudades = sorted([
-            city["name"] 
-            for city in all_cities.values() 
-            if city["countrycode"] == country_code
-        ])
+        ciudades = sorted([city["name"] for city in all_cities.values() if city["countrycode"] == country_code])
     else:
         ciudades = []
+
     ciudad = st.selectbox("Ciudad *", ciudades if ciudades else ["Seleccione un país"])
+
     edad = st.selectbox(
         "Rango de edad *",
         ["Selecciona...", "18-24 años", "25-34 años", "35-44 años",
@@ -821,10 +889,7 @@ def pagina_demograficos():
     correo = st.text_input("Correo electrónico")
     telefono = st.text_input("Teléfono")
     entrevista = st.radio("¿Te contactamos para entrevistas?", ["No", "Sí"])
-    convocatorias = st.multiselect(
-        "¿Te interesa participar en?",
-        ["Talleres de autogestión", "Ferias de arte"]
-    )
+    convocatorias = st.multiselect("¿Te interesa participar en?", ["Talleres de autogestión", "Ferias de arte"])
 
     col_prev, col_next = st.columns([1, 1])
     with col_prev:
@@ -833,9 +898,8 @@ def pagina_demograficos():
             st.rerun()
     with col_next:
         campos_completos = (
-            pais and ciudad and
-            edad != "Selecciona..." and
-            nivel_academico != "Selecciona..."
+            pais and ciudad and ciudad != "Seleccione un país" and
+            edad != "Selecciona..." and nivel_academico != "Selecciona..."
         )
 
         if campos_completos:
@@ -856,12 +920,6 @@ def pagina_demograficos():
                     }
                 }
 
-                # Guardar respuesta (aquí conectar con Google Sheets)
-                if 'datos' not in st.session_state:
-                    st.session_state.datos = {'respuestas': []}
-                st.session_state.datos['respuestas'].append(respuesta_completa)
-                st.session_state.encuesta_page = 5
-                st.rerun()
                 # Guardar respuesta en Google Sheets
                 if guardar_respuesta_sheets(respuesta_completa):
                     st.session_state.encuesta_page = 5
@@ -874,7 +932,7 @@ def pagina_demograficos():
 def pagina_gracias():
     st.markdown("""
     <div class="thanks-message">
-        ¡Muchas gracias por responder y apoyarnos con este estudio, con él queremos mejorar nuestras formas de autogestión!<br>
+        ¡Muchas gracias por responder y apoyarnos con este estudio!<br>
         Ahora navega por nuestros mapeos
     </div>
     """, unsafe_allow_html=True)
@@ -896,139 +954,46 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Slab:wght@400;700&display=swap');
 
-    [data-testid="stSidebar"] {
-        background-color: #808080;
-    }
-
+    [data-testid="stSidebar"] { background-color: #808080; }
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
-        color: black;
-    }
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { color: black; }
 
     .tramas-logo {
-        background-color: #000000;
-        color: white;
-        padding: 1rem 0.5rem;
-        border-radius: 10px;
-        font-family: 'Roboto', sans-serif;
-        font-weight: 700;
-        font-size: 2rem;
-        text-align: center;
-        margin-bottom: 0.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.3rem;
+        background-color: #000000; color: white; padding: 1rem 0.5rem;
+        border-radius: 10px; font-family: 'Roboto', sans-serif; font-weight: 700;
+        font-size: 2rem; text-align: center; margin-bottom: 0.5rem;
+        display: flex; align-items: center; justify-content: center; gap: 0.3rem;
     }
-
-    .tramas-logo-icon {
-        font-size: 2rem;
-        color: #808080;
-    }
+    .tramas-logo-icon { font-size: 2rem; color: #808080; }
 
     .credits-small {
-        font-family: 'Roboto Slab', serif;
-        font-style: italic;
-        font-size: 0.7rem;
-        color: black;
-        text-align: center;
-        margin: 1rem 0 0.5rem 0;
-        line-height: 1.3;
+        font-family: 'Roboto Slab', serif; font-style: italic; font-size: 0.7rem;
+        color: black; text-align: center; margin: 1rem 0 0.5rem 0; line-height: 1.3;
     }
 
     .mapeo-title {
-        background-color: #000000;
-        color: white;
-        padding: 0.8rem 2rem;
-        border-radius: 10px;
-        font-family: 'Roboto', sans-serif;
-        font-weight: 700;
-        font-size: 1.8rem;
-        text-align: center;
-        margin-bottom: 1rem;
-    }
-
-    .mapeo-description {
-        background-color: #f5f5f5;
-        padding: 1rem;
-        border-radius: 8px;
-        font-family: 'Roboto Slab', serif;
-        color: black;
-        text-align: center;
-        margin-bottom: 1rem;
-        font-size: 1rem;
-    }
-
-    .map-legend {
-        background-color: #f0f0f0;
-        padding: 0.8rem;
-        border-radius: 8px;
-        font-family: 'Roboto Slab', serif;
-        font-size: 0.95rem;
-        color: #333;
-        margin-bottom: 1rem;
-    }
-
-    .legend-dot {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin: 0 3px;
+        background-color: #000000; color: white; padding: 0.8rem 2rem;
+        border-radius: 10px; font-family: 'Roboto', sans-serif; font-weight: 700;
+        font-size: 1.8rem; text-align: center; margin-bottom: 1rem;
     }
 
     .question-box {
-        background-color: white;
-        color: black;
-        padding: 1rem;
-        border-radius: 8px;
-        font-family: 'Roboto Slab', serif;
-        margin: 0.5rem 0;
-        border: 1px solid #e0e0e0;
+        background-color: white; color: black; padding: 1rem; border-radius: 8px;
+        font-family: 'Roboto Slab', serif; margin: 0.5rem 0; border: 1px solid #e0e0e0;
     }
 
     .thanks-message {
-        background-color: #A870B0;
-        color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        text-align: center;
-        font-family: 'Roboto', sans-serif;
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin: 1rem 0;
+        background-color: #A870B0; color: white; padding: 2rem; border-radius: 15px;
+        text-align: center; font-family: 'Roboto', sans-serif; font-size: 1.5rem;
+        font-weight: 700; margin: 1rem 0;
     }
 
     .stButton > button {
-        background-color: #A870B0;
-        color: #62CBE6;
-        font-family: 'Roboto', sans-serif;
-        font-weight: 700;
-        border-radius: 10px;
-        padding: 0.75rem 2rem;
-        border: none;
-        font-size: 1.1rem;
+        background-color: #A870B0; color: #62CBE6; font-family: 'Roboto', sans-serif;
+        font-weight: 700; border-radius: 10px; padding: 0.75rem 2rem;
+        border: none; font-size: 1.1rem;
     }
-
-    .stButton > button:hover {
-        background-color: #8f5a9a;
-        color: #4db8d4;
-    }
-
-    .stTextInput > div > div > input:focus,
-    .stSelectbox > div > div > select:focus,
-    .stNumberInput > div > div > input:focus {
-        border-color: #A870B0 !important;
-        box-shadow: 0 0 0 1px #A870B0 !important;
-    }
-
-    .stTextInput > div > div > input,
-    .stSelectbox > div > div > select,
-    .stNumberInput > div > div > input {
-        font-family: 'Roboto Slab', serif;
-        background-color: white;
-        color: black;
-    }
+    .stButton > button:hover { background-color: #8f5a9a; color: #4db8d4; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1041,8 +1006,6 @@ if 'encuesta_page' not in st.session_state:
     st.session_state.encuesta_page = 0
 if 'temp_data' not in st.session_state:
     st.session_state.temp_data = {}
-if 'datos' not in st.session_state:
-    st.session_state.datos = {'respuestas': []}
 
 inicializar_sesion()
 
@@ -1059,10 +1022,8 @@ with st.sidebar:
 
     if st.button("🏠 Inicio", use_container_width=True, key="btn_inicio"):
         st.session_state.seccion = 'intro'
-        if 'page' in st.session_state:
-            st.session_state.page = None
-        if 'encuesta_page' in st.session_state:
-            st.session_state.encuesta_page = 0
+        st.session_state.page = None
+        st.session_state.encuesta_page = 0
         st.rerun()
 
     if st.button("📊 Gestión Cultural y Digital", use_container_width=True, key="btn_mapeo1"):
@@ -1070,7 +1031,6 @@ with st.sidebar:
         st.session_state.page = 'vista_mapas'
         st.rerun()
 
-    # Botón de contacto
     st.markdown("---")
     st.markdown("""
     <a href="https://elchorro.com.co/contactanos/" target="_blank" style="text-decoration: none;">
@@ -1082,46 +1042,60 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     st.markdown("---")
-
-    # Créditos
     st.markdown("""
     <div class="credits-small">
         Este programa es un desarrollo en colaboración entre El Chorro Producciones y Huika Mexihco
     </div>
     """, unsafe_allow_html=True)
 
-    # Logos con links
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("""
-        <a href="https://www.elchorro.com.co" target="_blank">
-            <img src="https://elchorroco.wordpress.com/wp-content/uploads/2025/04/ch-plano.png" width="50">
-        </a>
-        """, unsafe_allow_html=True)
+        st.markdown('<a href="https://www.elchorro.com.co" target="_blank"><img src="https://elchorroco.wordpress.com/wp-content/uploads/2025/04/ch-plano.png" width="50"></a>', unsafe_allow_html=True)
     with col2:
-        st.markdown("""
-        <a href="https://www.huikamexihco.com.mx" target="_blank">
-            <img src="https://huikamexihco.com.mx/wp-content/uploads/2021/04/huika-mexihco.png" width="50">
-        </a>
-        """, unsafe_allow_html=True)
+        st.markdown('<a href="https://www.huikamexihco.com.mx" target="_blank"><img src="https://huikamexihco.com.mx/wp-content/uploads/2021/04/huika-mexihco.png" width="50"></a>', unsafe_allow_html=True)
 
     st.markdown("---")
 
     if esta_autenticado():
         st.markdown("### 👤 Sesión Activa")
         st.info(f"**Usuario:** {st.session_state.username}")
-
         if st.button("🚪 Cerrar sesión", use_container_width=True, key="btn_logout"):
             logout()
             st.rerun()
+
+        # Diagnóstico de conexión para admin
+        with st.expander("🔧 Diagnóstico Google Sheets"):
+            if "gcp_service_account" in st.secrets:
+                st.success("✅ gcp_service_account configurado")
+                if "client_email" in st.secrets["gcp_service_account"]:
+                    email = st.secrets["gcp_service_account"]["client_email"]
+                    st.code(email, language=None)
+                    st.caption("☝️ Comparte tu Sheet con este email como Editor")
+            else:
+                st.error("❌ gcp_service_account NO configurado")
+
+            if "google_sheets" in st.secrets:
+                st.success("✅ google_sheets configurado")
+                if "spreadsheet_id" in st.secrets["google_sheets"]:
+                    st.code(st.secrets["google_sheets"]["spreadsheet_id"], language=None)
+            else:
+                st.error("❌ google_sheets NO configurado")
+
+            if st.button("🧪 Probar conexión", key="test_conn"):
+                sheet = conectar_google_sheets()
+                if sheet:
+                    st.success(f"✅ Conectado a: {sheet.title}")
+                    try:
+                        count = len(sheet.get_all_values())
+                        st.info(f"📊 Filas en el sheet: {count}")
+                    except Exception as e:
+                        st.warning(f"No se pudo contar filas: {e}")
     else:
         st.markdown("### 🔐 Acceso Administrador")
-
         with st.form("login_form"):
             username = st.text_input("Usuario", placeholder="admin_tramas")
             password = st.text_input("Contraseña", type="password", placeholder="••••••••")
             submit = st.form_submit_button("Iniciar sesión", use_container_width=True)
-
             if submit:
                 if verificar_credenciales(username, password):
                     login()
@@ -1152,10 +1126,8 @@ if st.session_state.seccion == 'intro':
 
 # ==================== MAPEO GESTIÓN CULTURAL ====================
 elif st.session_state.seccion == 'mapeo1':
-
     st.markdown('<div class="mapeo-title">Mapeo de Gestión Cultural y Digital en Latinoamérica</div>', unsafe_allow_html=True)
 
-    # Tabs para navegar entre encuesta y resultados
     tab1, tab2 = st.tabs(["📝 Participar en Encuesta", "📊 Ver Resultados"])
 
     with tab1:
