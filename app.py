@@ -98,31 +98,70 @@ def conectar_google_sheets():
     try:
         # Verificar que existan los secrets
         if "gcp_service_account" not in st.secrets:
-            st.warning("⚠️ No se encontró 'gcp_service_account' en Secrets. Configura los secrets en Streamlit Cloud.")
+            st.error("❌ No se encontró 'gcp_service_account' en Secrets. Configura los secrets en Streamlit Cloud.")
             return None
         if "google_sheets" not in st.secrets:
-            st.warning("⚠️ No se encontró 'google_sheets' en Secrets. Configura los secrets en Streamlit Cloud.")
+            st.error("❌ No se encontró 'google_sheets' en Secrets. Configura los secrets en Streamlit Cloud.")
             return None
 
+        # Verificar campos requeridos del service account
+        required_fields = ["type", "project_id", "private_key", "client_email"]
+        for field in required_fields:
+            if field not in st.secrets["gcp_service_account"]:
+                st.error(f"❌ Falta el campo '{field}' en gcp_service_account")
+                return None
+
         credentials = Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"],
+            dict(st.secrets["gcp_service_account"]),
             scopes=SCOPES
         )
         client = gspread.authorize(credentials)
         spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
         sheet = client.open_by_key(spreadsheet_id).sheet1
         return sheet
-    except Exception as e:
-        st.error(f"❌ Error conectando con Google Sheets: {e}")
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error("❌ No se encontró la hoja de cálculo. Verifica el ID del spreadsheet.")
         return None
+    except gspread.exceptions.APIError as e:
+        st.error(f"❌ Error de API de Google: {e}")
+        st.info("💡 Asegúrate de compartir el Google Sheet con el email de la cuenta de servicio.")
+        return None
+    except Exception as e:
+        st.error(f"❌ Error conectando con Google Sheets: {type(e).__name__}: {e}")
+        return None
+
+def inicializar_headers_sheets(sheet):
+    """Inicializa los headers en la hoja si está vacía"""
+    headers = [
+        'timestamp', 'num_organizaciones', 'num_proyectos', 'organizaciones_tipos',
+        'organizaciones_cargos', 'proyectos_nombres', 'proyectos_cargos', 'jerarquia',
+        'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'identidad',
+        'herramientas', 'herramientas_pagadas', 'ias', 'ias_pagadas', 'comunidades',
+        'pais', 'ciudad', 'edad', 'nivel_academico', 'nombre', 'correo', 'telefono',
+        'entrevista', 'convocatorias', 'tipo_org_score', 'nivel_formalizacion',
+        'nivel_digitalizacion'
+    ]
+    try:
+        existing = sheet.row_values(1)
+        if not existing:
+            sheet.append_row(headers)
+            return True
+        return True
+    except Exception:
+        sheet.append_row(headers)
+        return True
 
 def guardar_respuesta_sheets(respuesta):
     """Guarda una respuesta en Google Sheets"""
     sheet = conectar_google_sheets()
     if sheet is None:
+        st.error("❌ No se pudo conectar con Google Sheets para guardar")
         return False
 
     try:
+        # Inicializar headers si es necesario
+        inicializar_headers_sheets(sheet)
+
         # Preparar los datos para la fila
         fila = [
             respuesta.get('demograficos', {}).get('timestamp', ''),
@@ -159,9 +198,14 @@ def guardar_respuesta_sheets(respuesta):
         ]
 
         sheet.append_row(fila)
+        st.success("✅ Respuesta guardada correctamente")
         return True
+    except gspread.exceptions.APIError as e:
+        st.error(f"❌ Error de API al guardar: {e}")
+        st.info("💡 Verifica que la cuenta de servicio tenga permisos de Editor en el Sheet")
+        return False
     except Exception as e:
-        st.error(f"❌ Error guardando respuesta: {e}")
+        st.error(f"❌ Error guardando respuesta: {type(e).__name__}: {e}")
         return False
 
 def cargar_respuestas_sheets():
@@ -171,10 +215,18 @@ def cargar_respuestas_sheets():
         return []
 
     try:
+        # Verificar si hay datos
+        all_values = sheet.get_all_values()
+        if len(all_values) <= 1:  # Solo headers o vacío
+            return []
+
         datos = sheet.get_all_records()
         return datos
+    except gspread.exceptions.APIError as e:
+        st.error(f"❌ Error de API al cargar datos: {e}")
+        return []
     except Exception as e:
-        st.error(f"❌ Error cargando respuestas: {e}")
+        st.error(f"❌ Error cargando respuestas: {type(e).__name__}: {e}")
         return []
 
 # ==================== AUTENTICACIÓN ====================
@@ -1010,6 +1062,34 @@ with st.sidebar:
         if st.button("🚪 Cerrar sesión", use_container_width=True, key="btn_logout"):
             logout()
             st.rerun()
+
+        # Diagnóstico de conexión para admin
+        with st.expander("🔧 Diagnóstico Google Sheets"):
+            if "gcp_service_account" in st.secrets:
+                st.success("✅ gcp_service_account configurado")
+                if "client_email" in st.secrets["gcp_service_account"]:
+                    email = st.secrets["gcp_service_account"]["client_email"]
+                    st.code(email, language=None)
+                    st.caption("☝️ Comparte tu Sheet con este email como Editor")
+            else:
+                st.error("❌ gcp_service_account NO configurado")
+
+            if "google_sheets" in st.secrets:
+                st.success("✅ google_sheets configurado")
+                if "spreadsheet_id" in st.secrets["google_sheets"]:
+                    st.code(st.secrets["google_sheets"]["spreadsheet_id"], language=None)
+            else:
+                st.error("❌ google_sheets NO configurado")
+
+            if st.button("🧪 Probar conexión", key="test_conn"):
+                sheet = conectar_google_sheets()
+                if sheet:
+                    st.success(f"✅ Conectado a: {sheet.title}")
+                    try:
+                        count = len(sheet.get_all_values())
+                        st.info(f"📊 Filas en el sheet: {count}")
+                    except Exception as e:
+                        st.warning(f"No se pudo contar filas: {e}")
     else:
         st.markdown("### 🔐 Acceso Administrador")
         with st.form("login_form"):
