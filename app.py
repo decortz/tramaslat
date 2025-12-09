@@ -15,7 +15,6 @@ SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
-@st.cache_resource
 
 def conectar_google_sheets():
     """Conecta con Google Sheets usando las credenciales de Streamlit Secrets"""
