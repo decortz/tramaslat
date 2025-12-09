@@ -7,11 +7,8 @@ import io
 import pycountry
 import geonamescache
 import gspread
-st.write(st.secrets)
 
-from google.oauth2.service_account import Credentials
-
- 
+from google.oauth2.service_account import Credentials 
 
 # ==================== GOOGLE SHEETS ====================
 SCOPES = [
