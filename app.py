@@ -4,6 +4,170 @@ import pandas as pd
 import plotly.graph_objects as go
 import hashlib
 import io
+import gspread
+from google.oauth2.service_account import Credentials
+
+# ==================== FUNCIONES DE CÁLCULO (deben ir primero) ====================
+
+def calcular_tipo_organizacion_score(tipo_org):
+    scores = {
+        'Empresa grande (más de 100 personas)': 10,
+        'Empresa mediana (entre 50 y 100 personas)': 8,
+        'Empresa pequeña (menos de 50 personas)': 5,
+        'Emprendimiento': 2,
+        'Organización educativa privada': -2,
+        'Asociación civil, ONG, cooperativa o colectivo': -5,
+        'Organización educativa pública': -7,
+        'Organización pública': -10
+    }
+    return scores.get(tipo_org, 0)
+
+def calcular_nivel_formalizacion(respuesta):
+    puntaje = 0
+    jerarquia_scores = {
+        'Altamente jerarquizadas': 25,
+        'En general menos de 3 niveles jerárquicos': 18,
+        'Nos repartimos los liderazgos y funciones': 10,
+        'No reconozco jerarquías': 0
+    }
+    puntaje += jerarquia_scores.get(respuesta.get('jerarquia', ''), 0)
+
+    planeacion_scores = {
+        'Hago o llevo un plan estratégico periódico y se revisa por la dirección': 25,
+        'Tengo un plan estratégico que se comunica de manera oficial': 20,
+        'Tengo un plan estratégico pero no lo comunico': 15,
+        'Participo en el desarrollo del plan estratégico en colectivo': 10,
+        'No tengo ninguna planeación': 0
+    }
+    puntaje += planeacion_scores.get(respuesta.get('planeacion', ''), 0)
+
+    funciones_scores = {
+        'Roles claramente identificados y bajo contrato': 25,
+        'Roles identificados y formalizados': 20,
+        'Roles informales pero identificables': 12,
+        'Roles informales fluidos': 6,
+        'No tengo roles definidos': 0
+    }
+    puntaje += funciones_scores.get(respuesta.get('funciones', ''), 0)
+
+    identidad_scores = {
+        'Marca con manual definido': 25,
+        'Marca definida, identidad informal': 18,
+        'Una marca más bien fluida': 12,
+        'Llevo una marca por línea de trabajo': 8,
+        'Sin identidad definida': 0
+    }
+    puntaje += identidad_scores.get(respuesta.get('identidad', ''), 0)
+
+    return puntaje
+
+def calcular_nivel_digitalizacion(respuesta):
+    puntaje = 0
+    num_herramientas = respuesta.get('num_herramientas', 0)
+    puntaje += min(num_herramientas * 5, 40)
+
+    num_ias = respuesta.get('num_ias', 0)
+    puntaje += min(num_ias * 5, 30)
+
+    num_ias_pagadas = respuesta.get('num_ias_pagadas', 0)
+    puntaje += min(num_ias_pagadas * 5, 15)
+
+    num_comunidades = respuesta.get('num_comunidades', 0)
+    puntaje += min(num_comunidades * 3, 15)
+
+    return min(puntaje, 100)
+
+def calcular_tipo_org_score_total(organizaciones):
+    """Calcula el score total de tipo de organización"""
+    total = 0
+    for org in organizaciones:
+        total += calcular_tipo_organizacion_score(org.get('tipo', ''))
+    return total
+
+# ==================== GOOGLE SHEETS ====================
+
+SCOPES = [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive'
+]
+
+@st.cache_resource
+def conectar_google_sheets():
+    """Conecta con Google Sheets usando las credenciales de Streamlit Secrets"""
+    try:
+        credentials = Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=SCOPES
+        )
+        client = gspread.authorize(credentials)
+        spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
+        sheet = client.open_by_key(spreadsheet_id).sheet1
+        return sheet
+    except Exception as e:
+        st.error(f"Error conectando con Google Sheets: {e}")
+        return None
+
+def guardar_respuesta_sheets(respuesta):
+    """Guarda una respuesta en Google Sheets"""
+    sheet = conectar_google_sheets()
+    if sheet is None:
+        return False
+
+    try:
+        # Preparar los datos para la fila
+        fila = [
+            respuesta.get('demograficos', {}).get('timestamp', ''),
+            respuesta.get('num_organizaciones', 0),
+            respuesta.get('num_proyectos', 0),
+            '|'.join([org.get('tipo', '') for org in respuesta.get('organizaciones', [])]),
+            '|'.join([org.get('cargo', '') for org in respuesta.get('organizaciones', [])]),
+            '|'.join([proy.get('nombre', '') for proy in respuesta.get('proyectos', [])]),
+            '|'.join([proy.get('cargo', '') for proy in respuesta.get('proyectos', [])]),
+            respuesta.get('herramientas_admin', {}).get('jerarquia', ''),
+            respuesta.get('herramientas_admin', {}).get('planeacion', ''),
+            respuesta.get('herramientas_admin', {}).get('ecosistema', ''),
+            respuesta.get('herramientas_admin', {}).get('redes', ''),
+            respuesta.get('herramientas_admin', {}).get('funciones', ''),
+            respuesta.get('herramientas_admin', {}).get('liderazgo', ''),
+            respuesta.get('herramientas_admin', {}).get('identidad', ''),
+            '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas', [])),
+            '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas_pagadas', [])),
+            '|'.join(respuesta.get('herramientas_digitales', {}).get('ias', [])),
+            '|'.join(respuesta.get('herramientas_digitales', {}).get('ias_pagadas', [])),
+            '|'.join(respuesta.get('herramientas_digitales', {}).get('comunidades', [])),
+            respuesta.get('demograficos', {}).get('pais', ''),
+            respuesta.get('demograficos', {}).get('ciudad', ''),
+            respuesta.get('demograficos', {}).get('edad', ''),
+            respuesta.get('demograficos', {}).get('nivel_academico', ''),
+            respuesta.get('demograficos', {}).get('nombre', ''),
+            respuesta.get('demograficos', {}).get('correo', ''),
+            respuesta.get('demograficos', {}).get('telefono', ''),
+            respuesta.get('demograficos', {}).get('entrevista', ''),
+            '|'.join(respuesta.get('demograficos', {}).get('convocatorias', [])),
+            calcular_tipo_org_score_total(respuesta.get('organizaciones', [])),
+            calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {})),
+            calcular_nivel_digitalizacion(respuesta.get('herramientas_digitales', {}))
+        ]
+
+        sheet.append_row(fila)
+        return True
+    except Exception as e:
+        st.error(f"Error guardando respuesta: {e}")
+        return False
+
+def cargar_respuestas_sheets():
+    """Carga todas las respuestas desde Google Sheets"""
+    sheet = conectar_google_sheets()
+    if sheet is None:
+        return []
+
+    try:
+        # Obtener todos los datos
+        datos = sheet.get_all_records()
+        return datos
+    except Exception as e:
+        st.error(f"Error cargando respuestas: {e}")
+        return []
 
 # ==================== AUTENTICACIÓN ====================
 
@@ -108,76 +272,6 @@ def mostrar_boton_descarga():
         with st.expander("👁️ Vista previa de los datos"):
             st.dataframe(df.head(10), use_container_width=True)
             st.caption(f"Mostrando las primeras 10 de {len(df)} filas")
-
-# ==================== FUNCIONES DE CÁLCULO ====================
-
-def calcular_tipo_organizacion_score(tipo_org):
-    scores = {
-        'Empresa grande (más de 100 personas)': 10,
-        'Empresa mediana (entre 50 y 100 personas)': 8,
-        'Empresa pequeña (menos de 50 personas)': 5,
-        'Emprendimiento': 2,
-        'Organización educativa privada': -2,
-        'Asociación civil, ONG, cooperativa o colectivo': -5,
-        'Organización educativa pública': -7,
-        'Organización pública': -10
-    }
-    return scores.get(tipo_org, 0)
-
-def calcular_nivel_formalizacion(respuesta):
-    puntaje = 0
-    jerarquia_scores = {
-        'Altamente jerarquizadas': 25,
-        'En general menos de 3 niveles jerárquicos': 18,
-        'Nos repartimos los liderazgos y funciones': 10,
-        'No reconozco jerarquías': 0
-    }
-    puntaje += jerarquia_scores.get(respuesta.get('jerarquia', ''), 0)
-
-    planeacion_scores = {
-        'Hago o llevo un plan estratégico periódico y se revisa por la dirección': 25,
-        'Tengo un plan estratégico que se comunica de manera oficial': 20,
-        'Tengo un plan estratégico pero no lo comunico': 15,
-        'Participo en el desarrollo del plan estratégico en colectivo': 10,
-        'No tengo ninguna planeación': 0
-    }
-    puntaje += planeacion_scores.get(respuesta.get('planeacion', ''), 0)
-
-    funciones_scores = {
-        'Roles claramente identificados y bajo contrato': 25,
-        'Roles identificados y formalizados': 20,
-        'Roles informales pero identificables': 12,
-        'Roles informales fluidos': 6,
-        'No tengo roles definidos': 0
-    }
-    puntaje += funciones_scores.get(respuesta.get('funciones', ''), 0)
-
-    identidad_scores = {
-        'Marca con manual definido': 25,
-        'Marca definida, identidad informal': 18,
-        'Una marca más bien fluida': 12,
-        'Llevo una marca por línea de trabajo': 8,
-        'Sin identidad definida': 0
-    }
-    puntaje += identidad_scores.get(respuesta.get('identidad', ''), 0)
-
-    return puntaje
-
-def calcular_nivel_digitalizacion(respuesta):
-    puntaje = 0
-    num_herramientas = respuesta.get('num_herramientas', 0)
-    puntaje += min(num_herramientas * 5, 40)
-
-    num_ias = respuesta.get('num_ias', 0)
-    puntaje += min(num_ias * 5, 30)
-
-    num_ias_pagadas = respuesta.get('num_ias_pagadas', 0)
-    puntaje += min(num_ias_pagadas * 5, 15)
-
-    num_comunidades = respuesta.get('num_comunidades', 0)
-    puntaje += min(num_comunidades * 3, 15)
-
-    return min(puntaje, 100)
 
 # ==================== FUNCIONES DE VISUALIZACIÓN ====================
 
@@ -284,43 +378,46 @@ def filtrar_datos(df, filtros):
 def mostrar_mapas():
     """Vista de mapas con gráficos y filtros"""
 
+    # Cargar datos desde Google Sheets
+    respuestas = cargar_respuestas_sheets()
+
     # Verificar si hay datos
-    if 'datos' not in st.session_state or not st.session_state.datos.get('respuestas'):
+    if not respuestas:
         st.info("📊 Aún no hay respuestas. ¡Sé el primero en completar la encuesta!")
         return
 
-    # Preparar datos para visualización
-    respuestas = st.session_state.datos['respuestas']
+    # Preparar datos para visualización (los datos ya vienen procesados de Google Sheets)
     datos_procesados = []
 
-    for respuesta in respuestas:
-        # Calcular índices
-        nivel_form = calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {}))
-        nivel_digit = calcular_nivel_digitalizacion(respuesta.get('herramientas_digitales', {}))
+    for resp in respuestas:
+        # Contar herramientas, IAs y comunidades desde las columnas separadas por |
+        herramientas_str = resp.get('herramientas', '')
+        ias_str = resp.get('ias', '')
+        ias_pagadas_str = resp.get('ias_pagadas', '')
+        comunidades_str = resp.get('comunidades', '')
 
-        # Calcular score de tipo de org (suma de todas las organizaciones)
-        tipo_org_score = 0
-        for org in respuesta.get('organizaciones', []):
-            tipo_org_score += calcular_tipo_organizacion_score(org.get('tipo', ''))
+        num_herramientas = len([h for h in herramientas_str.split('|') if h]) if herramientas_str else 0
+        num_ias = len([i for i in ias_str.split('|') if i and i != 'Ninguna']) if ias_str else 0
+        num_ias_pagadas = len([i for i in ias_pagadas_str.split('|') if i]) if ias_pagadas_str else 0
+        num_comunidades = len([c for c in comunidades_str.split('|') if c]) if comunidades_str else 0
 
-        # Agregar datos procesados
         datos_procesados.append({
-            'num_organizaciones': respuesta.get('num_organizaciones', 0),
-            'num_proyectos': respuesta.get('num_proyectos', 0),
-            'total_entidades': respuesta.get('num_organizaciones', 0) + respuesta.get('num_proyectos', 0),
-            'tipo_org_score': tipo_org_score,
-            'nivel_formalizacion': nivel_form,
-            'nivel_digitalizacion': nivel_digit,
-            'jerarquia': respuesta.get('herramientas_admin', {}).get('jerarquia', ''),
-            'planeacion': respuesta.get('herramientas_admin', {}).get('planeacion', ''),
-            'num_herramientas': respuesta.get('herramientas_digitales', {}).get('num_herramientas', 0),
-            'num_ias': respuesta.get('herramientas_digitales', {}).get('num_ias', 0),
-            'num_ias_pagadas': respuesta.get('herramientas_digitales', {}).get('num_ias_pagadas', 0),
-            'num_comunidades': respuesta.get('herramientas_digitales', {}).get('num_comunidades', 0),
-            'pais': respuesta.get('demograficos', {}).get('pais', ''),
-            'ciudad': respuesta.get('demograficos', {}).get('ciudad', ''),
-            'edad': respuesta.get('demograficos', {}).get('edad', ''),
-            'nivel_academico': respuesta.get('demograficos', {}).get('nivel_academico', '')
+            'num_organizaciones': resp.get('num_organizaciones', 0),
+            'num_proyectos': resp.get('num_proyectos', 0),
+            'total_entidades': resp.get('num_organizaciones', 0) + resp.get('num_proyectos', 0),
+            'tipo_org_score': resp.get('tipo_org_score', 0),
+            'nivel_formalizacion': resp.get('nivel_formalizacion', 0),
+            'nivel_digitalizacion': resp.get('nivel_digitalizacion', 0),
+            'jerarquia': resp.get('jerarquia', ''),
+            'planeacion': resp.get('planeacion', ''),
+            'num_herramientas': num_herramientas,
+            'num_ias': num_ias,
+            'num_ias_pagadas': num_ias_pagadas,
+            'num_comunidades': num_comunidades,
+            'pais': resp.get('pais', ''),
+            'ciudad': resp.get('ciudad', ''),
+            'edad': resp.get('edad', ''),
+            'nivel_academico': resp.get('nivel_academico', '')
         })
 
     df_datos = pd.DataFrame(datos_procesados)
@@ -790,13 +887,12 @@ def pagina_demograficos():
                     }
                 }
 
-                # Guardar respuesta (aquí conectar con Google Sheets)
-                if 'datos' not in st.session_state:
-                    st.session_state.datos = {'respuestas': []}
-                st.session_state.datos['respuestas'].append(respuesta_completa)
-
-                st.session_state.encuesta_page = 5
-                st.rerun()
+                # Guardar respuesta en Google Sheets
+                if guardar_respuesta_sheets(respuesta_completa):
+                    st.session_state.encuesta_page = 5
+                    st.rerun()
+                else:
+                    st.error("Error al guardar la respuesta. Por favor intenta de nuevo.")
         else:
             st.button("Finalizar ✅", use_container_width=True, disabled=True)
 
