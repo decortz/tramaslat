@@ -906,9 +906,14 @@ def pagina_demograficos():
                 if 'datos' not in st.session_state:
                     st.session_state.datos = {'respuestas': []}
                 st.session_state.datos['respuestas'].append(respuesta_completa)
-
                 st.session_state.encuesta_page = 5
                 st.rerun()
+                # Guardar respuesta en Google Sheets
+                if guardar_respuesta_sheets(respuesta_completa):
+                    st.session_state.encuesta_page = 5
+                    st.rerun()
+                else:
+                    st.error("Error al guardar la respuesta. Por favor intenta de nuevo.")
         else:
             st.button("Finalizar ✅", use_container_width=True, disabled=True)
 
