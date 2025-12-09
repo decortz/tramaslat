@@ -410,6 +410,7 @@ def mostrar_mapas():
             'ciudad': respuesta.get('demograficos', {}).get('ciudad', ''),
             'edad': respuesta.get('demograficos', {}).get('edad', ''),
             'nivel_academico': respuesta.get('demograficos', {}).get('nivel_academico', '')
+        })
     # Cargar datos desde Google Sheets
     respuestas = cargar_respuestas_sheets()
     # Verificar si hay datos
