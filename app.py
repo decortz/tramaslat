@@ -86,6 +86,13 @@ def calcular_tipo_org_score_total(organizaciones):
 
 # ==================== GOOGLE SHEETS ====================
 
+import pycountry
+import geonamescache
+import gspread
+
+from google.oauth2.service_account import Credentials 
+
+# ==================== GOOGLE SHEETS ====================
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
@@ -102,6 +109,7 @@ def conectar_google_sheets():
         client = gspread.authorize(credentials)
         spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
         sheet = client.open_by_key(spreadsheet_id).sheet1
+        sheet = client.open_by_key(spreadsheet_id).worksheet("Hoja1")
         return sheet
     except Exception as e:
         st.error(f"Error conectando con Google Sheets: {e}")
@@ -153,6 +161,11 @@ def guardar_respuesta_sheets(respuesta):
         return True
     except Exception as e:
         st.error(f"Error guardando respuesta: {e}")
+        sheet.append_row(fila)
+        return True
+    except Exception as e:
+        st.error("Error guardando respuesta")
+        st.write("Error detallado:", e)
         return False
 
 def cargar_respuestas_sheets():
@@ -168,6 +181,13 @@ def cargar_respuestas_sheets():
     except Exception as e:
         st.error(f"Error cargando respuestas: {e}")
         return []
+
+def calcular_tipo_org_score_total(organizaciones):
+    """Calcula el score total de tipo de organización"""
+    total = 0
+    for org in organizaciones:
+        total += calcular_tipo_organizacion_score(org.get('tipo', ''))
+    return total
 
 # ==================== AUTENTICACIÓN ====================
 
@@ -374,7 +394,6 @@ def filtrar_datos(df, filtros):
     return df_filtrado
 
 # ==================== FUNCIÓN MOSTRAR MAPAS ====================
-
 def mostrar_mapas():
     """Vista de mapas con gráficos y filtros"""
 
@@ -401,6 +420,18 @@ def mostrar_mapas():
         num_ias_pagadas = len([i for i in ias_pagadas_str.split('|') if i]) if ias_pagadas_str else 0
         num_comunidades = len([c for c in comunidades_str.split('|') if c]) if comunidades_str else 0
 
+    # Preparar datos para visualización
+    respuestas = st.session_state.datos['respuestas']
+    datos_procesados = []
+    for respuesta in respuestas:
+        # Calcular índices
+        nivel_form = calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {}))
+        nivel_digit = calcular_nivel_digitalizacion(respuesta.get('herramientas_digitales', {}))
+        # Calcular score de tipo de org (suma de todas las organizaciones)
+        tipo_org_score = 0
+        for org in respuesta.get('organizaciones', []):
+            tipo_org_score += calcular_tipo_organizacion_score(org.get('tipo', ''))
+        # Agregar datos procesados
         datos_procesados.append({
             'num_organizaciones': resp.get('num_organizaciones', 0),
             'num_proyectos': resp.get('num_proyectos', 0),
@@ -419,123 +450,44 @@ def mostrar_mapas():
             'edad': resp.get('edad', ''),
             'nivel_academico': resp.get('nivel_academico', '')
         })
-
-    df_datos = pd.DataFrame(datos_procesados)
-
-    # Filtros demográficos
-    st.markdown("### Filtros Demográficos")
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        paises_disponibles = ['Todos'] + sorted(df_datos['pais'].unique().tolist())
-        filtro_pais = st.selectbox("País:", paises_disponibles, key="f_pais")
-
-    with col2:
-        if filtro_pais != 'Todos':
-            ciudades_disponibles = ['Todos'] + sorted(
-                df_datos[df_datos['pais'] == filtro_pais]['ciudad'].unique().tolist()
-            )
-        else:
-            ciudades_disponibles = ['Todos'] + sorted(df_datos['ciudad'].unique().tolist())
-        filtro_ciudad = st.selectbox("Ciudad:", ciudades_disponibles, key="f_ciudad")
-
-    with col3:
-        edades_disponibles = ['Todos'] + sorted(df_datos['edad'].unique().tolist())
-        filtro_edad = st.selectbox("Edad:", edades_disponibles, key="f_edad")
-
-    with col4:
-        niveles_disponibles = ['Todos'] + sorted(df_datos['nivel_academico'].unique().tolist())
-        filtro_nivel = st.selectbox("Nivel académico:", niveles_disponibles, key="f_nivel")
-
-    # Aplicar filtros
-    filtros = {
-        'pais': filtro_pais,
-        'ciudad': filtro_ciudad,
-        'edad': filtro_edad,
-        'nivel_academico': filtro_nivel
-    }
-
-    df_filtrado = filtrar_datos(df_datos, filtros)
-
-    st.info(f"📊 Mostrando {len(df_filtrado)} de {len(df_datos)} respuestas")
-
-    if len(df_filtrado) == 0:
-        st.warning("No hay datos con los filtros seleccionados. Prueba con otros criterios.")
+    # Cargar datos desde Google Sheets
+    respuestas = cargar_respuestas_sheets()
+    # Verificar si hay datos
+    if not respuestas:
+        st.info("📊 Aún no hay respuestas. ¡Sé el primero en completar la encuesta!")
         return
 
-    st.markdown("---")
-
-    # GRÁFICO PRINCIPAL
-    st.markdown("### Gráfico Principal")
-    st.markdown("""
-    <div class="map-legend">
-        En este mapa medimos, por persona, qué tan formalizadas son sus relaciones
-        <span class="legend-dot" style="background-color: #5D80B5;"></span>
-        y su nivel de digitalización
-        <span class="legend-dot" style="background-color: #A870B0;"></span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    fig = crear_scatter_dual(df_filtrado)
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("---")
-
-    # GRÁFICOS COMPLEMENTARIOS
-    st.markdown("### Gráficos Complementarios")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown("#### 1. Cantidad de organizaciones + proyectos por persona")
-        fig1 = go.Figure(data=[
-            go.Bar(x=df_filtrado['total_entidades'].value_counts().sort_index().index,
-                   y=df_filtrado['total_entidades'].value_counts().sort_index().values,
-                   marker_color='#5D80B5')
-        ])
-        fig1.update_layout(showlegend=False, xaxis_title="Cantidad", yaxis_title="Frecuencia")
-        st.plotly_chart(fig1, use_container_width=True)
-
-    with col2:
-        st.markdown("#### 2. Tipos de jerarquías y planeación")
-        jer_counts = df_filtrado['jerarquia'].value_counts()
-        plan_counts = df_filtrado['planeacion'].value_counts()
-
-        fig2 = crear_grafico_barras_dual(
-            jer_counts, plan_counts,
-            'Jerarquía', 'Planeación'
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-
-    col3, col4 = st.columns(2)
-
-    with col3:
-        st.markdown("#### 3. Herramientas digitales y comunidades")
-        herr_counts = df_filtrado['num_herramientas'].value_counts().sort_index()
-        com_counts = df_filtrado['num_comunidades'].value_counts().sort_index()
-
-        fig3 = crear_grafico_barras_dual(
-            herr_counts, com_counts,
-            'Herramientas', 'Comunidades'
-        )
-        st.plotly_chart(fig3, use_container_width=True)
-
-    with col4:
-        st.markdown("#### 4. IAs utilizadas y IAs pagadas")
-        ia_counts = df_filtrado['num_ias'].value_counts().sort_index()
-        ia_pag_counts = df_filtrado['num_ias_pagadas'].value_counts().sort_index()
-
-        fig4 = crear_grafico_barras_dual(
-            ia_counts, ia_pag_counts,
-            'IAs usadas', 'IAs pagadas'
-        )
-        st.plotly_chart(fig4, use_container_width=True)
-
-    # Descarga de mapas
-    if esta_autenticado():
-        st.markdown("---")
-        st.markdown("### 📥 Descarga de Datos (Administrador)")
-        mostrar_boton_descarga()
+    # Preparar datos para visualización (los datos ya vienen procesados de Google Sheets)
+    datos_procesados = []
+    for resp in respuestas:
+        # Contar herramientas, IAs y comunidades desde las columnas separadas por |
+        herramientas_str = resp.get('herramientas', '')
+        ias_str = resp.get('ias', '')
+        ias_pagadas_str = resp.get('ias_pagadas', '')
+        comunidades_str = resp.get('comunidades', '')
+        num_herramientas = len([h for h in herramientas_str.split('|') if h]) if herramientas_str else 0
+        num_ias = len([i for i in ias_str.split('|') if i and i != 'Ninguna']) if ias_str else 0
+        num_ias_pagadas = len([i for i in ias_pagadas_str.split('|') if i]) if ias_pagadas_str else 0
+        num_comunidades = len([c for c in comunidades_str.split('|') if c]) if comunidades_str else 0
+        datos_procesados.append({
+            'num_organizaciones': resp.get('num_organizaciones', 0),
+            'num_proyectos': resp.get('num_proyectos', 0),
+            'total_entidades': resp.get('num_organizaciones', 0) + resp.get('num_proyectos', 0),
+            'tipo_org_score': resp.get('tipo_org_score', 0),
+            'nivel_formalizacion': resp.get('nivel_formalizacion', 0),
+            'nivel_digitalizacion': resp.get('nivel_digitalizacion', 0),
+            'jerarquia': resp.get('jerarquia', ''),
+            'planeacion': resp.get('planeacion', ''),
+            'num_herramientas': num_herramientas,
+            'num_ias': num_ias,
+            'num_ias_pagadas': num_ias_pagadas,
+            'num_comunidades': num_comunidades,
+            'pais': resp.get('pais', ''),
+            'ciudad': resp.get('ciudad', ''),
+            'edad': resp.get('edad', ''),
+            'nivel_academico': resp.get('nivel_academico', '')
+        })
+    df_datos = pd.DataFrame(datos_procesados)
 
 # ==================== FUNCIONES DE LA ENCUESTA ====================
 
@@ -619,7 +571,7 @@ def pagina_cantidad():
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### ¿A cuántas organizaciones y proyectos perteneces? (ten en cuenta que si el proyecto lo haces dentro de una organización o empresa, no cuenta como proyecto)")
+    st.markdown("### ¿A cuántas organizaciones perteneces formal o informalmente y en cuántos proyectos estás participando?")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -676,7 +628,7 @@ def pagina_cantidad():
                 st.rerun()
 
 def pagina_herramientas_admin():
-    st.markdown("### Herramientas Administrativas y Gestivas")
+    st.markdown("### Herramientas Administrativas y Gestivas (responde de manera general o pensando en la organización o proyecto principal)")
 
     jerarquia = st.selectbox(
         "1. ¿Cómo son tus relaciones de trabajo?",
@@ -833,8 +785,25 @@ def pagina_demograficos():
     st.caption("Campos con * son obligatorios")
 
     st.markdown("#### Información obligatoria")
-    pais = st.text_input("País *", placeholder="Ej: Colombia, México")
-    ciudad = st.text_input("Ciudad *", placeholder="Ej: Bogotá, CDMX")
+    # Instancia de geonames
+    gc = geonamescache.GeonamesCache()
+    # Lista de países con pycountry
+    paises = sorted([country.name for country in pycountry.countries])
+    pais = st.selectbox("País *", paises)
+    # Obtener código ISO del país seleccionado
+    country_obj = pycountry.countries.get(name=pais)
+    country_code = country_obj.alpha_2 if country_obj else None
+    # Obtener ciudades del país via geonames
+    if country_code:
+        all_cities = gc.get_cities()
+        ciudades = sorted([
+            city["name"] 
+            for city in all_cities.values() 
+            if city["countrycode"] == country_code
+        ])
+    else:
+        ciudades = []
+    ciudad = st.selectbox("Ciudad *", ciudades if ciudades else ["Seleccione un país"])
     edad = st.selectbox(
         "Rango de edad *",
         ["Selecciona...", "18-24 años", "25-34 años", "35-44 años",
@@ -887,6 +856,12 @@ def pagina_demograficos():
                     }
                 }
 
+                # Guardar respuesta (aquí conectar con Google Sheets)
+                if 'datos' not in st.session_state:
+                    st.session_state.datos = {'respuestas': []}
+                st.session_state.datos['respuestas'].append(respuesta_completa)
+                st.session_state.encuesta_page = 5
+                st.rerun()
                 # Guardar respuesta en Google Sheets
                 if guardar_respuesta_sheets(respuesta_completa):
                     st.session_state.encuesta_page = 5
