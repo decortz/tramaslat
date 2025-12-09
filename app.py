@@ -74,7 +74,8 @@ def guardar_respuesta_sheets(respuesta):
         sheet.append_row(fila)
         return True
     except Exception as e:
-        st.error(f"Error guardando respuesta: {e}")
+        st.error("Error guardando respuesta")
+        st.write("Error detallado:", e)
         return False
 
 def cargar_respuestas_sheets():
