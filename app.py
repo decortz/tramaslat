@@ -9,8 +9,6 @@ import geonamescache
 import gspread
 
 from google.oauth2.service_account import Credentials 
-st.write("Private key existe:", "private_key" in st.secrets["gcp_service_account"])
-
 
 # ==================== GOOGLE SHEETS ====================
 SCOPES = [
