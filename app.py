@@ -88,118 +88,123 @@ def calcular_tipo_org_score_total(organizaciones):
 
 # ==================== GOOGLE SHEETS ====================
 
+import time
+
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
 
-def conectar_google_sheets():
-    """Conecta con Google Sheets usando las credenciales de Streamlit Secrets"""
+@st.cache_resource(ttl=300)  # Cache por 5 minutos
+def obtener_cliente_gspread():
+    """Obtiene cliente gspread con caché para evitar múltiples autenticaciones"""
     try:
-        # Verificar que existan los secrets
         if "gcp_service_account" not in st.secrets:
-            st.error("❌ No se encontró 'gcp_service_account' en Secrets. Configura los secrets en Streamlit Cloud.")
-            return None
+            return None, "No se encontró 'gcp_service_account' en Secrets"
         if "google_sheets" not in st.secrets:
-            st.error("❌ No se encontró 'google_sheets' en Secrets. Configura los secrets en Streamlit Cloud.")
-            return None
+            return None, "No se encontró 'google_sheets' en Secrets"
 
-        # Verificar campos requeridos del service account
         required_fields = ["type", "project_id", "private_key", "client_email"]
         for field in required_fields:
             if field not in st.secrets["gcp_service_account"]:
-                st.error(f"❌ Falta el campo '{field}' en gcp_service_account")
-                return None
+                return None, f"Falta el campo '{field}' en gcp_service_account"
 
         credentials = Credentials.from_service_account_info(
             dict(st.secrets["gcp_service_account"]),
             scopes=SCOPES
         )
         client = gspread.authorize(credentials)
+        return client, None
+    except Exception as e:
+        return None, str(e)
+
+def conectar_google_sheets(mostrar_errores=True):
+    """Conecta con Google Sheets usando cliente cacheado"""
+    try:
+        client, error = obtener_cliente_gspread()
+        if client is None:
+            if mostrar_errores:
+                st.error(f"❌ {error}")
+            return None
+
         spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
         sheet = client.open_by_key(spreadsheet_id).sheet1
         return sheet
     except gspread.exceptions.SpreadsheetNotFound:
-        st.error("❌ No se encontró la hoja de cálculo. Verifica el ID del spreadsheet.")
+        if mostrar_errores:
+            st.error("❌ No se encontró la hoja de cálculo. Verifica el ID del spreadsheet.")
         return None
     except gspread.exceptions.APIError as e:
-        st.error(f"❌ Error de API de Google: {e}")
-        st.info("💡 Asegúrate de compartir el Google Sheet con el email de la cuenta de servicio.")
+        if mostrar_errores:
+            st.error(f"❌ Error de API de Google: {e}")
+            st.info("💡 Asegúrate de compartir el Google Sheet con el email de la cuenta de servicio.")
         return None
     except Exception as e:
-        st.error(f"❌ Error conectando con Google Sheets: {type(e).__name__}: {e}")
+        if mostrar_errores:
+            st.error(f"❌ Error conectando: {type(e).__name__}: {e}")
         return None
 
-def inicializar_headers_sheets(sheet):
-    """Inicializa los headers en la hoja si está vacía"""
-    headers = [
-        'timestamp', 'num_organizaciones', 'num_proyectos', 'organizaciones_tipos',
-        'organizaciones_cargos', 'proyectos_nombres', 'proyectos_cargos', 'jerarquia',
-        'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'identidad',
-        'herramientas', 'herramientas_pagadas', 'ias', 'ias_pagadas', 'comunidades',
-        'pais', 'ciudad', 'edad', 'nivel_academico', 'nombre', 'correo', 'telefono',
-        'entrevista', 'convocatorias', 'tipo_org_score', 'nivel_formalizacion',
-        'nivel_digitalizacion'
+HEADERS_SHEETS = [
+    'timestamp', 'num_organizaciones', 'num_proyectos', 'organizaciones_tipos',
+    'organizaciones_cargos', 'proyectos_nombres', 'proyectos_cargos', 'jerarquia',
+    'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'identidad',
+    'herramientas', 'herramientas_pagadas', 'ias', 'ias_pagadas', 'comunidades',
+    'pais', 'ciudad', 'edad', 'nivel_academico', 'nombre', 'correo', 'telefono',
+    'entrevista', 'convocatorias', 'tipo_org_score', 'nivel_formalizacion',
+    'nivel_digitalizacion'
+]
+
+def guardar_respuesta_sheets(respuesta, max_reintentos=3):
+    """Guarda una respuesta en Google Sheets con reintentos para rate limiting"""
+
+    # Preparar los datos para la fila ANTES de conectar (para minimizar tiempo de conexión)
+    fila = [
+        respuesta.get('demograficos', {}).get('timestamp', ''),
+        respuesta.get('num_organizaciones', 0),
+        respuesta.get('num_proyectos', 0),
+        '|'.join([org.get('tipo', '') for org in respuesta.get('organizaciones', [])]),
+        '|'.join([org.get('cargo', '') for org in respuesta.get('organizaciones', [])]),
+        '|'.join([proy.get('nombre', '') for proy in respuesta.get('proyectos', [])]),
+        '|'.join([proy.get('cargo', '') for proy in respuesta.get('proyectos', [])]),
+        respuesta.get('herramientas_admin', {}).get('jerarquia', ''),
+        respuesta.get('herramientas_admin', {}).get('planeacion', ''),
+        respuesta.get('herramientas_admin', {}).get('ecosistema', ''),
+        respuesta.get('herramientas_admin', {}).get('redes', ''),
+        respuesta.get('herramientas_admin', {}).get('funciones', ''),
+        respuesta.get('herramientas_admin', {}).get('liderazgo', ''),
+        respuesta.get('herramientas_admin', {}).get('identidad', ''),
+        '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas', [])),
+        '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas_pagadas', [])),
+        '|'.join(respuesta.get('herramientas_digitales', {}).get('ias', [])),
+        '|'.join(respuesta.get('herramientas_digitales', {}).get('ias_pagadas', [])),
+        '|'.join(respuesta.get('herramientas_digitales', {}).get('comunidades', [])),
+        respuesta.get('demograficos', {}).get('pais', ''),
+        respuesta.get('demograficos', {}).get('ciudad', ''),
+        respuesta.get('demograficos', {}).get('edad', ''),
+        respuesta.get('demograficos', {}).get('nivel_academico', ''),
+        respuesta.get('demograficos', {}).get('nombre', ''),
+        respuesta.get('demograficos', {}).get('correo', ''),
+        respuesta.get('demograficos', {}).get('telefono', ''),
+        respuesta.get('demograficos', {}).get('entrevista', ''),
+        '|'.join(respuesta.get('demograficos', {}).get('convocatorias', [])),
+        calcular_tipo_org_score_total(respuesta.get('organizaciones', [])),
+        calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {})),
+        calcular_nivel_digitalizacion(respuesta.get('herramientas_digitales', {}))
     ]
-    try:
-        existing = sheet.row_values(1)
-        if not existing:
-            sheet.append_row(headers)
+
+    for intento in range(max_reintentos):
+        try:
+            sheet = conectar_google_sheets(mostrar_errores=(intento == max_reintentos - 1))
+            if sheet is None:
+                if intento < max_reintentos - 1:
+                    time.sleep(2 ** intento)  # Backoff exponencial: 1s, 2s, 4s
+                    continue
+                st.error("❌ No se pudo conectar con Google Sheets")
+                return False
+
+            sheet.append_row(fila)
+            st.success("✅ Respuesta guardada correctamente")
             return True
-        return True
-    except Exception:
-        sheet.append_row(headers)
-        return True
-
-def guardar_respuesta_sheets(respuesta):
-    """Guarda una respuesta en Google Sheets"""
-    sheet = conectar_google_sheets()
-    if sheet is None:
-        st.error("❌ No se pudo conectar con Google Sheets para guardar")
-        return False
-
-    try:
-        # Inicializar headers si es necesario
-        inicializar_headers_sheets(sheet)
-
-        # Preparar los datos para la fila
-        fila = [
-            respuesta.get('demograficos', {}).get('timestamp', ''),
-            respuesta.get('num_organizaciones', 0),
-            respuesta.get('num_proyectos', 0),
-            '|'.join([org.get('tipo', '') for org in respuesta.get('organizaciones', [])]),
-            '|'.join([org.get('cargo', '') for org in respuesta.get('organizaciones', [])]),
-            '|'.join([proy.get('nombre', '') for proy in respuesta.get('proyectos', [])]),
-            '|'.join([proy.get('cargo', '') for proy in respuesta.get('proyectos', [])]),
-            respuesta.get('herramientas_admin', {}).get('jerarquia', ''),
-            respuesta.get('herramientas_admin', {}).get('planeacion', ''),
-            respuesta.get('herramientas_admin', {}).get('ecosistema', ''),
-            respuesta.get('herramientas_admin', {}).get('redes', ''),
-            respuesta.get('herramientas_admin', {}).get('funciones', ''),
-            respuesta.get('herramientas_admin', {}).get('liderazgo', ''),
-            respuesta.get('herramientas_admin', {}).get('identidad', ''),
-            '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas', [])),
-            '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas_pagadas', [])),
-            '|'.join(respuesta.get('herramientas_digitales', {}).get('ias', [])),
-            '|'.join(respuesta.get('herramientas_digitales', {}).get('ias_pagadas', [])),
-            '|'.join(respuesta.get('herramientas_digitales', {}).get('comunidades', [])),
-            respuesta.get('demograficos', {}).get('pais', ''),
-            respuesta.get('demograficos', {}).get('ciudad', ''),
-            respuesta.get('demograficos', {}).get('edad', ''),
-            respuesta.get('demograficos', {}).get('nivel_academico', ''),
-            respuesta.get('demograficos', {}).get('nombre', ''),
-            respuesta.get('demograficos', {}).get('correo', ''),
-            respuesta.get('demograficos', {}).get('telefono', ''),
-            respuesta.get('demograficos', {}).get('entrevista', ''),
-            '|'.join(respuesta.get('demograficos', {}).get('convocatorias', [])),
-            calcular_tipo_org_score_total(respuesta.get('organizaciones', [])),
-            calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {})),
-            calcular_nivel_digitalizacion(respuesta.get('herramientas_digitales', {}))
-        ]
-
-        sheet.append_row(fila)
-        st.success("✅ Respuesta guardada correctamente")
-        return True
     except gspread.exceptions.APIError as e:
         st.error(f"❌ Error de API al guardar: {e}")
         st.info("💡 Verifica que la cuenta de servicio tenga permisos de Editor en el Sheet")
@@ -619,9 +624,55 @@ def pagina_intro():
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("INICIAR ENCUESTA ➡️", use_container_width=True):
-        st.session_state.encuesta_page = 1
-        st.rerun()
+    # Aviso de tratamiento de datos
+    st.markdown("""
+    <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
+        <h4 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Aviso de Tratamiento de Datos Personales</h4>
+        <p style="line-height: 1.6; font-size: 0.95rem;">
+            Al participar en esta encuesta, autorizas el tratamiento de tus datos personales conforme a lo siguiente:
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Responsables:</strong> El Chorro Producciones (Colombia) y Huika Mexihco (México),
+            en el marco del proyecto de investigación postdoctoral "TRAMAS: Tejidos en Red, Análisis y Mapeos Sociales".
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Finalidad:</strong> Tus respuestas serán utilizadas exclusivamente para fines de investigación
+            académica sobre gestión cultural y digital en Latinoamérica. Los resultados se presentarán de forma
+            agregada y anónima.
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Datos recopilados:</strong> Información sobre tu participación en organizaciones y proyectos
+            culturales, herramientas de gestión y digitales que utilizas, y datos demográficos básicos
+            (país, ciudad, rango de edad, nivel académico).
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Datos opcionales:</strong> Nombre, correo electrónico y teléfono son voluntarios y solo se
+            usarán para contactarte si aceptas participar en entrevistas o convocatorias.
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Derechos:</strong> Puedes solicitar acceso, corrección o eliminación de tus datos escribiendo a
+            <a href="mailto:info@elchorro.com.co" style="color: #A870B0;">info@elchorro.com.co</a>.
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Protección:</strong> Tus datos se almacenan de forma segura y no serán compartidos con terceros
+            fuera del equipo de investigación.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Checkbox de consentimiento
+    acepta_datos = st.checkbox(
+        "He leído y acepto el tratamiento de mis datos personales según lo descrito anteriormente.",
+        key="acepta_datos"
+    )
+
+    if acepta_datos:
+        if st.button("INICIAR ENCUESTA ➡️", use_container_width=True):
+            st.session_state.encuesta_page = 1
+            st.rerun()
+    else:
+        st.button("INICIAR ENCUESTA ➡️", use_container_width=True, disabled=True)
+        st.caption("Debes aceptar el tratamiento de datos para continuar.")
 
 def pagina_cantidad():
     st.markdown("""
