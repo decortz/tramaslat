@@ -642,6 +642,7 @@ def pagina_intro():
     else:
         st.button("INICIAR ENCUESTA ➡️", use_container_width=True, disabled=True)
         st.caption("Debes aceptar el tratamiento de datos para continuar.")
+    
     # Aviso de tratamiento de datos
     st.markdown("""
     <div class="question-box">
