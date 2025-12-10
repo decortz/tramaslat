@@ -239,6 +239,126 @@ def cargar_respuestas_sheets():
         st.error(f"❌ Error cargando respuestas: {type(e).__name__}: {e}")
         return []
 
+# ==================== GOOGLE SHEETS - STREAMING (Hoja2) ====================
+
+def conectar_google_sheets_streaming(mostrar_errores=True):
+    """Conecta con la Hoja2 de Google Sheets para el mapeo de streaming"""
+    try:
+        client, error = obtener_cliente_gspread()
+        if client is None:
+            if mostrar_errores:
+                st.error(f"❌ {error}")
+            return None
+
+        spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
+        spreadsheet = client.open_by_key(spreadsheet_id)
+        sheet = spreadsheet.worksheet("Hoja2")
+        return sheet
+    except gspread.exceptions.WorksheetNotFound:
+        if mostrar_errores:
+            st.error("❌ No se encontró 'Hoja2'. Créala en tu Google Sheets.")
+        return None
+    except gspread.exceptions.APIError as e:
+        if mostrar_errores:
+            st.error(f"❌ Error de API de Google: {e}")
+        return None
+    except Exception as e:
+        if mostrar_errores:
+            st.error(f"❌ Error conectando a Hoja2: {type(e).__name__}: {e}")
+        return None
+
+def guardar_respuesta_streaming(respuesta, max_reintentos=3):
+    """Guarda una respuesta de streaming en Google Sheets Hoja2"""
+
+    # Preparar fila: timestamp, pais, tipo_dist, spotify, applemusic, youtube, tidal, amazonmusic, otros
+    plataformas = respuesta.get('plataformas', {})
+
+    fila = [
+        respuesta.get('timestamp', ''),
+        respuesta.get('pais', ''),
+        respuesta.get('tipo_distribucion', ''),
+        f"{plataformas.get('Spotify', {}).get('ingresos', 0)}|{plataformas.get('Spotify', {}).get('reproducciones', 0)}",
+        f"{plataformas.get('Apple Music', {}).get('ingresos', 0)}|{plataformas.get('Apple Music', {}).get('reproducciones', 0)}",
+        f"{plataformas.get('YouTube', {}).get('ingresos', 0)}|{plataformas.get('YouTube', {}).get('reproducciones', 0)}",
+        f"{plataformas.get('Tidal', {}).get('ingresos', 0)}|{plataformas.get('Tidal', {}).get('reproducciones', 0)}",
+        f"{plataformas.get('Amazon Music', {}).get('ingresos', 0)}|{plataformas.get('Amazon Music', {}).get('reproducciones', 0)}",
+        f"{plataformas.get('Otros', {}).get('ingresos', 0)}|{plataformas.get('Otros', {}).get('reproducciones', 0)}"
+    ]
+
+    for intento in range(max_reintentos):
+        try:
+            sheet = conectar_google_sheets_streaming(mostrar_errores=(intento == max_reintentos - 1))
+            if sheet is None:
+                if intento < max_reintentos - 1:
+                    time.sleep(2 ** intento)
+                    continue
+                return False
+
+            sheet.append_row(fila)
+            st.success("✅ Respuesta guardada correctamente")
+            return True
+        except gspread.exceptions.APIError as e:
+            if "429" in str(e) and intento < max_reintentos - 1:
+                time.sleep(2 ** intento)
+                continue
+            st.error(f"❌ Error de API al guardar: {e}")
+            return False
+        except Exception as e:
+            st.error(f"❌ Error guardando: {type(e).__name__}: {e}")
+            return False
+
+    return False
+
+def cargar_respuestas_streaming():
+    """Carga todas las respuestas de streaming desde Hoja2"""
+    sheet = conectar_google_sheets_streaming(mostrar_errores=False)
+    if sheet is None:
+        return []
+
+    try:
+        all_values = sheet.get_all_values()
+        if len(all_values) <= 1:
+            return []
+
+        # Procesar manualmente ya que el formato es especial
+        headers = all_values[0]
+        datos = []
+
+        for row in all_values[1:]:
+            if len(row) >= 9:
+                # Parsear cada plataforma (formato: "ingresos|reproducciones")
+                def parse_plataforma(valor):
+                    try:
+                        parts = str(valor).split('|')
+                        return {
+                            'ingresos': int(parts[0]) if parts[0] else 0,
+                            'reproducciones': int(parts[1]) if len(parts) > 1 and parts[1] else 0
+                        }
+                    except:
+                        return {'ingresos': 0, 'reproducciones': 0}
+
+                datos.append({
+                    'timestamp': row[0],
+                    'pais': row[1],
+                    'tipo_distribucion': row[2],
+                    'plataformas': {
+                        'Spotify': parse_plataforma(row[3]),
+                        'Apple Music': parse_plataforma(row[4]),
+                        'YouTube': parse_plataforma(row[5]),
+                        'Tidal': parse_plataforma(row[6]),
+                        'Amazon Music': parse_plataforma(row[7]),
+                        'Otros': parse_plataforma(row[8])
+                    }
+                })
+
+        return datos
+    except gspread.exceptions.APIError as e:
+        st.error(f"❌ Error de API al cargar datos: {e}")
+        return []
+    except Exception as e:
+        st.error(f"❌ Error cargando respuestas: {type(e).__name__}: {e}")
+        return []
+
 # ==================== AUTENTICACIÓN ====================
 
 ADMIN_USER = "admin_tramas"
@@ -1107,7 +1227,6 @@ def mapeo_streaming():
             campos_ok = pais != "Selecciona..." and tipo_dist != "Selecciona..."
             if campos_ok:
                 if st.button("Enviar respuesta ✅", use_container_width=True, key="streaming_submit"):
-                    # Guardar respuesta en session_state (sin Google Sheets por ahora)
                     respuesta = {
                         'timestamp': datetime.now().isoformat(),
                         'pais': pais,
@@ -1115,9 +1234,12 @@ def mapeo_streaming():
                         'tipo_distribucion': tipo_dist,
                         'plataformas': datos_plataformas
                     }
-                    st.session_state.streaming_data.append(respuesta)
-                    st.session_state.streaming_page = 2
-                    st.rerun()
+                    # Guardar en Google Sheets (Hoja2)
+                    if guardar_respuesta_streaming(respuesta):
+                        st.session_state.streaming_page = 2
+                        st.rerun()
+                    else:
+                        st.error("Error al guardar la respuesta. Por favor intenta de nuevo.")
             else:
                 st.button("Enviar respuesta ✅", use_container_width=True, disabled=True, key="streaming_submit_disabled")
                 st.caption("Completa país y tipo de distribución para continuar.")
@@ -1148,8 +1270,8 @@ def mostrar_visualizacion_streaming():
 
     PLATAFORMAS = ['Spotify', 'Apple Music', 'YouTube', 'Tidal', 'Amazon Music', 'Otros']
 
-    # Usar datos de session_state
-    datos = st.session_state.get('streaming_data', [])
+    # Cargar datos desde Google Sheets (Hoja2)
+    datos = cargar_respuestas_streaming()
 
     if not datos:
         st.info("📊 Aún no hay respuestas. ¡Sé el primero en participar!")
