@@ -624,9 +624,55 @@ def pagina_intro():
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("INICIAR ENCUESTA ➡️", use_container_width=True):
-        st.session_state.encuesta_page = 1
-        st.rerun()
+    # Aviso de tratamiento de datos
+    st.markdown("""
+    <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
+        <h4 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Aviso de Tratamiento de Datos Personales</h4>
+        <p style="line-height: 1.6; font-size: 0.95rem;">
+            Al participar en esta encuesta, autorizas el tratamiento de tus datos personales conforme a lo siguiente:
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Responsables:</strong> El Chorro Producciones (Colombia) y Huika Mexihco (México),
+            en el marco del proyecto de investigación postdoctoral "TRAMAS: Tejidos en Red, Análisis y Mapeos Sociales".
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Finalidad:</strong> Tus respuestas serán utilizadas exclusivamente para fines de investigación
+            académica sobre gestión cultural y digital en Latinoamérica. Los resultados se presentarán de forma
+            agregada y anónima.
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Datos recopilados:</strong> Información sobre tu participación en organizaciones y proyectos
+            culturales, herramientas de gestión y digitales que utilizas, y datos demográficos básicos
+            (país, ciudad, rango de edad, nivel académico).
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Datos opcionales:</strong> Nombre, correo electrónico y teléfono son voluntarios y solo se
+            usarán para contactarte si aceptas participar en entrevistas o convocatorias.
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Derechos:</strong> Puedes solicitar acceso, corrección o eliminación de tus datos escribiendo a
+            <a href="mailto:info@elchorro.com.co" style="color: #A870B0;">info@elchorro.com.co</a>.
+        </p>
+        <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
+            <strong>Protección:</strong> Tus datos se almacenan de forma segura y no serán compartidos con terceros
+            fuera del equipo de investigación.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Checkbox de consentimiento
+    acepta_datos = st.checkbox(
+        "He leído y acepto el tratamiento de mis datos personales según lo descrito anteriormente.",
+        key="acepta_datos"
+    )
+
+    if acepta_datos:
+        if st.button("INICIAR ENCUESTA ➡️", use_container_width=True):
+            st.session_state.encuesta_page = 1
+            st.rerun()
+    else:
+        st.button("INICIAR ENCUESTA ➡️", use_container_width=True, disabled=True)
+        st.caption("Debes aceptar el tratamiento de datos para continuar.")
 
 def pagina_cantidad():
     st.markdown("""
