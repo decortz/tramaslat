@@ -379,12 +379,12 @@ def crear_scatter_dual(df_filtrado):
     ))
 
     fig.update_layout(
-        xaxis_title="Tipo de organización: de muy gubernamental (-20) a muy empresarial (+20)",
+        xaxis_title="Tipo de organización: de muy gubernamental (-10) a muy empresarial (+10)",
         yaxis_title="Nivel (0-100)",
         height=600,
         hovermode='closest',
         plot_bgcolor='white',
-        xaxis=dict(gridcolor='#f0f0f0', range=[-12, 12]),
+        xaxis=dict(gridcolor='#f0f0f0', range=[-20, 20]),
         yaxis=dict(gridcolor='#f0f0f0', range=[-5, 105])
     )
 
