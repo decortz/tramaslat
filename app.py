@@ -1418,7 +1418,7 @@ st.markdown("""
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { color: black; }
 
     .tramas-logo {
-        background-color: #000000; color: white; padding: 1rem 0.5rem;
+        background-color: #000000; color: white; padding: 0.3rem 0.2rem;
         border-radius: 10px; font-family: 'Roboto', sans-serif; font-weight: 700;
         font-size: 2.5rem; text-align: center; margin-bottom: 0.1rem;
         display: flex; align-items: center; justify-content: center; gap: 0.1rem;
@@ -1571,8 +1571,7 @@ with st.sidebar:
 
 # ==================== PÁGINA INTRO ====================
 if st.session_state.seccion == 'intro':
-    st.markdown('<div class="mapeo-title">tramas</div>', unsafe_allow_html=True)
-    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #666;">Tejidos en Red: Análisis y Mapeos Sociales</p>', unsafe_allow_html=True)
+    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #666;">trama /n Tejidos en Red: Análisis y Mapeos Sociales</p>', unsafe_allow_html=True)
 
     st.markdown("""
     <div class="question-box">
