@@ -1266,7 +1266,7 @@ def mapeo_streaming():
                     else:
                         st.error("Error al guardar la respuesta. Por favor intenta de nuevo.")
             else:
-                st.button("Enviar respuesta ✅", use_container_width=True, disabled=True, key="streaming_submit_disabled")
+                st.button("Enviar respuesta ✅ (si muestra error, solo vuelve a dar click acá, no te regreses)", use_container_width=True, disabled=True, key="streaming_submit_disabled")
                 st.caption("Completa país y tipo de distribución para continuar.")
 
     # ===== PÁGINA 2: GRACIAS =====
@@ -1395,18 +1395,13 @@ def mostrar_visualizacion_streaming():
             'Total Streams': f"{totales_reproducciones[p]:,.0f}",
             '% Ingresos': f"{pct_ingresos[p]:.1f}%",
             '% Streams': f"{pct_reproducciones[p]:.1f}%",
-            'Pago/Stream': f"${pago_por_stream:.4f}"
+            'Pago/Stream': f"${pago_por_stream:.2f}"
         })
 
     df_resumen = pd.DataFrame(resumen_data)
     st.dataframe(df_resumen, use_container_width=True, hide_index=True)
 
     st.caption("**Pago/Stream:** Promedio de dólares pagados por cada reproducción en la plataforma.")
-
-    # Botón para volver a la encuesta
-    if st.button("⬅️ Volver a la encuesta", key="volver_encuesta_streaming"):
-        st.session_state.streaming_page = 0
-        st.rerun()
 
 # ==================== CONFIGURACIÓN ====================
 st.set_page_config(
@@ -1428,7 +1423,7 @@ st.markdown("""
     .tramas-logo {
         background-color: #000000; color: white; padding: 1rem 0.5rem;
         border-radius: 10px; font-family: 'Roboto', sans-serif; font-weight: 700;
-        font-size: 2rem; text-align: center; margin-bottom: 0.5rem;
+        font-size: 2.5rem; text-align: center; margin-bottom: 0.5rem;
         display: flex; align-items: center; justify-content: center; gap: 0.3rem;
     }
     .tramas-logo-icon { font-size: 2rem; color: #808080; }
