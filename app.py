@@ -958,8 +958,7 @@ def pagina_demograficos():
         )
 
         if campos_completos:
-            if st.button("""Finalizar ✅ 
-                (si no carga, vuelve a dar click acá, no te regreses)""", use_container_width=True):
+            if st.button({"Finalizar ✅ \u2028(si no carga, vuelve a dar click acá, no te regreses)", use_container_width=True):
                 respuesta_completa = {
                     **st.session_state.temp_data,
                     'demograficos': {
