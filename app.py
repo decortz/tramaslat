@@ -1571,7 +1571,7 @@ with st.sidebar:
 
 # ==================== PÁGINA INTRO ====================
 if st.session_state.seccion == 'intro':
-    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #666;">tramas<br>Tejidos en Red: Análisis y Mapeos Sociales</p>', unsafe_allow_html=True)
+    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #000000;"><strong>tramas</strong><br><strong>Tejidos en Red: Análisis y Mapeos Sociales</strong>', unsafe_allow_html=True)
 
     st.markdown("""
     <div class="question-box">
