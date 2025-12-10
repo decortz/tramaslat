@@ -275,19 +275,25 @@ def conectar_google_sheets_streaming(mostrar_errores=True):
 def guardar_respuesta_streaming(respuesta, max_reintentos=3):
     """Guarda una respuesta de streaming en Google Sheets Hoja2"""
 
-    # Preparar fila: timestamp, pais, tipo_dist, spotify, applemusic, youtube, tidal, amazonmusic, otros
+    # Preparar fila con columnas separadas para ingresos y streams
     plataformas = respuesta.get('plataformas', {})
 
     fila = [
         respuesta.get('timestamp', ''),
         respuesta.get('pais', ''),
         respuesta.get('tipo_distribucion', ''),
-        f"{plataformas.get('Spotify', {}).get('ingresos', 0)}|{plataformas.get('Spotify', {}).get('reproducciones', 0)}",
-        f"{plataformas.get('Apple Music', {}).get('ingresos', 0)}|{plataformas.get('Apple Music', {}).get('reproducciones', 0)}",
-        f"{plataformas.get('YouTube', {}).get('ingresos', 0)}|{plataformas.get('YouTube', {}).get('reproducciones', 0)}",
-        f"{plataformas.get('Tidal', {}).get('ingresos', 0)}|{plataformas.get('Tidal', {}).get('reproducciones', 0)}",
-        f"{plataformas.get('Amazon Music', {}).get('ingresos', 0)}|{plataformas.get('Amazon Music', {}).get('reproducciones', 0)}",
-        f"{plataformas.get('Otros', {}).get('ingresos', 0)}|{plataformas.get('Otros', {}).get('reproducciones', 0)}"
+        plataformas.get('Spotify', {}).get('ingresos', 0),
+        plataformas.get('Spotify', {}).get('reproducciones', 0),
+        plataformas.get('Apple Music', {}).get('ingresos', 0),
+        plataformas.get('Apple Music', {}).get('reproducciones', 0),
+        plataformas.get('YouTube', {}).get('ingresos', 0),
+        plataformas.get('YouTube', {}).get('reproducciones', 0),
+        plataformas.get('Tidal', {}).get('ingresos', 0),
+        plataformas.get('Tidal', {}).get('reproducciones', 0),
+        plataformas.get('Amazon Music', {}).get('ingresos', 0),
+        plataformas.get('Amazon Music', {}).get('reproducciones', 0),
+        plataformas.get('Otros', {}).get('ingresos', 0),
+        plataformas.get('Otros', {}).get('reproducciones', 0)
     ]
 
     for intento in range(max_reintentos):
@@ -328,18 +334,14 @@ def cargar_respuestas_streaming():
 
         datos = []
 
-        def parse_plataforma(valor):
-            """Parsea el formato 'ingresos|reproducciones'"""
+        def safe_int(valor):
+            """Convierte a entero de forma segura"""
             try:
                 if not valor:
-                    return {'ingresos': 0, 'reproducciones': 0}
-                parts = str(valor).split('|')
-                return {
-                    'ingresos': int(float(parts[0])) if parts[0] else 0,
-                    'reproducciones': int(float(parts[1])) if len(parts) > 1 and parts[1] else 0
-                }
+                    return 0
+                return int(float(str(valor).replace(',', '')))
             except:
-                return {'ingresos': 0, 'reproducciones': 0}
+                return 0
 
         def safe_get(row, index, default=''):
             """Obtiene un valor de la fila de forma segura"""
@@ -352,12 +354,30 @@ def cargar_respuestas_streaming():
                     'pais': safe_get(row, 1),
                     'tipo_distribucion': safe_get(row, 2),
                     'plataformas': {
-                        'Spotify': parse_plataforma(safe_get(row, 3)),
-                        'Apple Music': parse_plataforma(safe_get(row, 4)),
-                        'YouTube': parse_plataforma(safe_get(row, 5)),
-                        'Tidal': parse_plataforma(safe_get(row, 6)),
-                        'Amazon Music': parse_plataforma(safe_get(row, 7)),
-                        'Otros': parse_plataforma(safe_get(row, 8))
+                        'Spotify': {
+                            'ingresos': safe_int(safe_get(row, 3)),
+                            'reproducciones': safe_int(safe_get(row, 4))
+                        },
+                        'Apple Music': {
+                            'ingresos': safe_int(safe_get(row, 5)),
+                            'reproducciones': safe_int(safe_get(row, 6))
+                        },
+                        'YouTube': {
+                            'ingresos': safe_int(safe_get(row, 7)),
+                            'reproducciones': safe_int(safe_get(row, 8))
+                        },
+                        'Tidal': {
+                            'ingresos': safe_int(safe_get(row, 9)),
+                            'reproducciones': safe_int(safe_get(row, 10))
+                        },
+                        'Amazon Music': {
+                            'ingresos': safe_int(safe_get(row, 11)),
+                            'reproducciones': safe_int(safe_get(row, 12))
+                        },
+                        'Otros': {
+                            'ingresos': safe_int(safe_get(row, 13)),
+                            'reproducciones': safe_int(safe_get(row, 14))
+                        }
                     }
                 })
 
@@ -1380,20 +1400,21 @@ def mostrar_visualizacion_streaming():
 
     resumen_data = []
     for p in PLATAFORMAS:
-        ratio = (pct_ingresos[p] / pct_reproducciones[p]) if pct_reproducciones[p] > 0 else 0
+        # Ratio = promedio de pago por stream (ingresos / reproducciones)
+        pago_por_stream = (totales_ingresos[p] / totales_reproducciones[p]) if totales_reproducciones[p] > 0 else 0
         resumen_data.append({
             'Plataforma': p,
             'Total Ingresos ($)': f"${totales_ingresos[p]:,.0f}",
-            'Total Reproducciones': f"{totales_reproducciones[p]:,.0f}",
+            'Total Streams': f"{totales_reproducciones[p]:,.0f}",
             '% Ingresos': f"{pct_ingresos[p]:.1f}%",
-            '% Reproducciones': f"{pct_reproducciones[p]:.1f}%",
-            'Ratio Pago': f"{ratio:.2f}"
+            '% Streams': f"{pct_reproducciones[p]:.1f}%",
+            'Pago/Stream': f"${pago_por_stream:.4f}"
         })
 
     df_resumen = pd.DataFrame(resumen_data)
     st.dataframe(df_resumen, use_container_width=True, hide_index=True)
 
-    st.caption("**Ratio Pago:** Valores > 1 indican que la plataforma paga más en proporción a las reproducciones.")
+    st.caption("**Pago/Stream:** Promedio de dólares pagados por cada reproducción en la plataforma.")
 
     # Botón para volver a la encuesta
     if st.button("⬅️ Volver a la encuesta", key="volver_encuesta_streaming"):
