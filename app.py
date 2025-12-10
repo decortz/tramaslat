@@ -118,18 +118,28 @@ def obtener_cliente_gspread():
     except Exception as e:
         return None, str(e)
 
-def conectar_google_sheets(mostrar_errores=True):
-    """Conecta con Google Sheets usando cliente cacheado"""
+@st.cache_resource(ttl=300)  # Cache la hoja por 5 minutos
+def obtener_spreadsheet():
+    """Obtiene el spreadsheet completo con caché"""
+    client, error = obtener_cliente_gspread()
+    if client is None:
+        return None, error
     try:
-        client, error = obtener_cliente_gspread()
-        if client is None:
+        spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
+        spreadsheet = client.open_by_key(spreadsheet_id)
+        return spreadsheet, None
+    except Exception as e:
+        return None, str(e)
+
+def conectar_google_sheets(mostrar_errores=True):
+    """Conecta con Google Sheets usando spreadsheet cacheado"""
+    try:
+        spreadsheet, error = obtener_spreadsheet()
+        if spreadsheet is None:
             if mostrar_errores:
                 st.error(f"❌ {error}")
             return None
-
-        spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
-        sheet = client.open_by_key(spreadsheet_id).sheet1
-        return sheet
+        return spreadsheet.sheet1
     except gspread.exceptions.SpreadsheetNotFound:
         if mostrar_errores:
             st.error("❌ No se encontró la hoja de cálculo. Verifica el ID del spreadsheet.")
@@ -137,7 +147,6 @@ def conectar_google_sheets(mostrar_errores=True):
     except gspread.exceptions.APIError as e:
         if mostrar_errores:
             st.error(f"❌ Error de API de Google: {e}")
-            st.info("💡 Asegúrate de compartir el Google Sheet con el email de la cuenta de servicio.")
         return None
     except Exception as e:
         if mostrar_errores:
@@ -242,18 +251,14 @@ def cargar_respuestas_sheets():
 # ==================== GOOGLE SHEETS - STREAMING (Hoja2) ====================
 
 def conectar_google_sheets_streaming(mostrar_errores=True):
-    """Conecta con la Hoja2 de Google Sheets para el mapeo de streaming"""
+    """Conecta con la Hoja2 de Google Sheets usando spreadsheet cacheado"""
     try:
-        client, error = obtener_cliente_gspread()
-        if client is None:
+        spreadsheet, error = obtener_spreadsheet()
+        if spreadsheet is None:
             if mostrar_errores:
                 st.error(f"❌ {error}")
             return None
-
-        spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
-        spreadsheet = client.open_by_key(spreadsheet_id)
-        sheet = spreadsheet.worksheet("Hoja2")
-        return sheet
+        return spreadsheet.worksheet("Hoja2")
     except gspread.exceptions.WorksheetNotFound:
         if mostrar_errores:
             st.error("❌ No se encontró 'Hoja2'. Créala en tu Google Sheets.")
