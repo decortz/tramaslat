@@ -651,12 +651,11 @@ def pagina_intro():
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
             <strong>Responsables:</strong> El Chorro Producciones (Colombia) y Huika Mexihco (México),
-            en el marco del proyecto de investigación postdoctoral "TRAMAS: Tejidos en Red, Análisis y Mapeos Sociales".
+            en el marco del proyecto de investigación enmarcado en la plataforma "TRAMAS: Tejidos en Red, Análisis y Mapeos Sociales".
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
             <strong>Finalidad:</strong> Tus respuestas serán utilizadas exclusivamente para fines de investigación
-            académica sobre gestión cultural y digital en Latinoamérica. Los resultados se presentarán de forma
-            agregada y anónima.
+            académica. Los resultados se presentarán de forma agregada y anónima.
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
             <strong>Datos recopilados:</strong> Información sobre tu participación en organizaciones y proyectos
