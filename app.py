@@ -628,7 +628,20 @@ def pagina_intro():
         </p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Checkbox de consentimiento
+    acepta_datos = st.checkbox(
+        "He leído y acepto el tratamiento de mis datos personales.",
+        key="acepta_datos"
+    )
 
+    if acepta_datos:
+        if st.button("INICIAR ENCUESTA ➡️", use_container_width=True):
+            st.session_state.encuesta_page = 1
+            st.rerun()
+    else:
+        st.button("INICIAR ENCUESTA ➡️", use_container_width=True, disabled=True)
+        st.caption("Debes aceptar el tratamiento de datos para continuar.")
     # Aviso de tratamiento de datos
     st.markdown("""
     <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
@@ -664,20 +677,6 @@ def pagina_intro():
         </p>
     </div>
     """, unsafe_allow_html=True)
-
-    # Checkbox de consentimiento
-    acepta_datos = st.checkbox(
-        "He leído y acepto el tratamiento de mis datos personales según lo descrito anteriormente.",
-        key="acepta_datos"
-    )
-
-    if acepta_datos:
-        if st.button("INICIAR ENCUESTA ➡️", use_container_width=True):
-            st.session_state.encuesta_page = 1
-            st.rerun()
-    else:
-        st.button("INICIAR ENCUESTA ➡️", use_container_width=True, disabled=True)
-        st.caption("Debes aceptar el tratamiento de datos para continuar.")
 
 def pagina_cantidad():
     st.markdown("""
