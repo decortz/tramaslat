@@ -1108,7 +1108,7 @@ def pagina_demograficos():
         )
 
         if campos_completos:
-            if st.button("Finalizar ✅ \u2028 (si no carga, vuelve a dar click acá, no te regreses)", use_container_width=True):
+            if st.button("Finalizar ✅ \u2028 (si muestra error, vuelve a dar click acá, no te regreses)", use_container_width=True):
                 respuesta_completa = {
                     **st.session_state.temp_data,
                     'demograficos': {
@@ -1251,7 +1251,7 @@ def mapeo_streaming():
         with col_next:
             campos_ok = pais != "Selecciona..." and tipo_dist != "Selecciona..."
             if campos_ok:
-                if st.button("Enviar respuesta ✅", use_container_width=True, key="streaming_submit"):
+                if st.button("Enviar respuesta ✅ (si muestra error, solo vuelve a dar click acá, no te regreses)", use_container_width=True, key="streaming_submit"):
                     respuesta = {
                         'timestamp': datetime.now().isoformat(),
                         'pais': pais,
@@ -1266,7 +1266,7 @@ def mapeo_streaming():
                     else:
                         st.error("Error al guardar la respuesta. Por favor intenta de nuevo.")
             else:
-                st.button("Enviar respuesta ✅ (si muestra error, solo vuelve a dar click acá, no te regreses)", use_container_width=True, disabled=True, key="streaming_submit_disabled")
+                st.button("Enviar respuesta ✅", use_container_width=True, disabled=True, key="streaming_submit_disabled")
                 st.caption("Completa país y tipo de distribución para continuar.")
 
     # ===== PÁGINA 2: GRACIAS =====
