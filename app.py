@@ -205,13 +205,18 @@ def guardar_respuesta_sheets(respuesta, max_reintentos=3):
             sheet.append_row(fila)
             st.success("✅ Respuesta guardada correctamente")
             return True
-    except gspread.exceptions.APIError as e:
-        st.error(f"❌ Error de API al guardar: {e}")
-        st.info("💡 Verifica que la cuenta de servicio tenga permisos de Editor en el Sheet")
-        return False
-    except Exception as e:
-        st.error(f"❌ Error guardando respuesta: {type(e).__name__}: {e}")
-        return False
+        except gspread.exceptions.APIError as e:
+            if "429" in str(e) and intento < max_reintentos - 1:
+                time.sleep(2 ** intento)
+                continue
+            st.error(f"❌ Error de API al guardar: {e}")
+            st.info("💡 Verifica que la cuenta de servicio tenga permisos de Editor en el Sheet")
+            return False
+        except Exception as e:
+            st.error(f"❌ Error guardando respuesta: {type(e).__name__}: {e}")
+            return False
+
+    return False
 
 def cargar_respuestas_sheets():
     """Carga todas las respuestas desde Google Sheets"""
