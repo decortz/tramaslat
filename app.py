@@ -1571,7 +1571,7 @@ with st.sidebar:
 
 # ==================== PÁGINA INTRO ====================
 if st.session_state.seccion == 'intro':
-    st.markdown('<div class="mapeo-title">TRAMAS</div>', unsafe_allow_html=True)
+    st.markdown('<div class="mapeo-title">tramas</div>', unsafe_allow_html=True)
     st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #666;">Tejidos en Red: Análisis y Mapeos Sociales</p>', unsafe_allow_html=True)
 
     st.markdown("""
