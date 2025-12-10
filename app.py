@@ -118,18 +118,28 @@ def obtener_cliente_gspread():
     except Exception as e:
         return None, str(e)
 
-def conectar_google_sheets(mostrar_errores=True):
-    """Conecta con Google Sheets usando cliente cacheado"""
+@st.cache_resource(ttl=300)  # Cache la hoja por 5 minutos
+def obtener_spreadsheet():
+    """Obtiene el spreadsheet completo con caché"""
+    client, error = obtener_cliente_gspread()
+    if client is None:
+        return None, error
     try:
-        client, error = obtener_cliente_gspread()
-        if client is None:
+        spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
+        spreadsheet = client.open_by_key(spreadsheet_id)
+        return spreadsheet, None
+    except Exception as e:
+        return None, str(e)
+
+def conectar_google_sheets(mostrar_errores=True):
+    """Conecta con Google Sheets usando spreadsheet cacheado"""
+    try:
+        spreadsheet, error = obtener_spreadsheet()
+        if spreadsheet is None:
             if mostrar_errores:
                 st.error(f"❌ {error}")
             return None
-
-        spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
-        sheet = client.open_by_key(spreadsheet_id).sheet1
-        return sheet
+        return spreadsheet.sheet1
     except gspread.exceptions.SpreadsheetNotFound:
         if mostrar_errores:
             st.error("❌ No se encontró la hoja de cálculo. Verifica el ID del spreadsheet.")
@@ -137,7 +147,6 @@ def conectar_google_sheets(mostrar_errores=True):
     except gspread.exceptions.APIError as e:
         if mostrar_errores:
             st.error(f"❌ Error de API de Google: {e}")
-            st.info("💡 Asegúrate de compartir el Google Sheet con el email de la cuenta de servicio.")
         return None
     except Exception as e:
         if mostrar_errores:
@@ -237,6 +246,147 @@ def cargar_respuestas_sheets():
         return []
     except Exception as e:
         st.error(f"❌ Error cargando respuestas: {type(e).__name__}: {e}")
+        return []
+
+# ==================== GOOGLE SHEETS - STREAMING (Hoja2) ====================
+
+def conectar_google_sheets_streaming(mostrar_errores=True):
+    """Conecta con la Hoja2 de Google Sheets usando spreadsheet cacheado"""
+    try:
+        spreadsheet, error = obtener_spreadsheet()
+        if spreadsheet is None:
+            if mostrar_errores:
+                st.error(f"❌ {error}")
+            return None
+        return spreadsheet.worksheet("Hoja2")
+    except gspread.exceptions.WorksheetNotFound:
+        if mostrar_errores:
+            st.error("❌ No se encontró 'Hoja2'. Créala en tu Google Sheets.")
+        return None
+    except gspread.exceptions.APIError as e:
+        if mostrar_errores:
+            st.error(f"❌ Error de API de Google: {e}")
+        return None
+    except Exception as e:
+        if mostrar_errores:
+            st.error(f"❌ Error conectando a Hoja2: {type(e).__name__}: {e}")
+        return None
+
+def guardar_respuesta_streaming(respuesta, max_reintentos=3):
+    """Guarda una respuesta de streaming en Google Sheets Hoja2"""
+
+    # Preparar fila con columnas separadas para ingresos y streams
+    plataformas = respuesta.get('plataformas', {})
+
+    fila = [
+        respuesta.get('timestamp', ''),
+        respuesta.get('pais', ''),
+        respuesta.get('tipo_distribucion', ''),
+        plataformas.get('Spotify', {}).get('ingresos', 0),
+        plataformas.get('Spotify', {}).get('reproducciones', 0),
+        plataformas.get('Apple Music', {}).get('ingresos', 0),
+        plataformas.get('Apple Music', {}).get('reproducciones', 0),
+        plataformas.get('YouTube', {}).get('ingresos', 0),
+        plataformas.get('YouTube', {}).get('reproducciones', 0),
+        plataformas.get('Tidal', {}).get('ingresos', 0),
+        plataformas.get('Tidal', {}).get('reproducciones', 0),
+        plataformas.get('Amazon Music', {}).get('ingresos', 0),
+        plataformas.get('Amazon Music', {}).get('reproducciones', 0),
+        plataformas.get('Otros', {}).get('ingresos', 0),
+        plataformas.get('Otros', {}).get('reproducciones', 0)
+    ]
+
+    for intento in range(max_reintentos):
+        try:
+            sheet = conectar_google_sheets_streaming(mostrar_errores=(intento == max_reintentos - 1))
+            if sheet is None:
+                if intento < max_reintentos - 1:
+                    time.sleep(2 ** intento)
+                    continue
+                return False
+
+            sheet.append_row(fila)
+            st.success("✅ Respuesta guardada correctamente")
+            return True
+        except gspread.exceptions.APIError as e:
+            if "429" in str(e) and intento < max_reintentos - 1:
+                time.sleep(2 ** intento)
+                continue
+            st.error(f"❌ Error de API al guardar: {e}")
+            return False
+        except Exception as e:
+            st.error(f"❌ Error guardando: {type(e).__name__}: {e}")
+            return False
+
+    return False
+
+def cargar_respuestas_streaming():
+    """Carga todas las respuestas de streaming desde Hoja2"""
+    sheet = conectar_google_sheets_streaming(mostrar_errores=True)
+    if sheet is None:
+        return []
+
+    try:
+        all_values = sheet.get_all_values()
+
+        if len(all_values) <= 1:
+            return []
+
+        datos = []
+
+        def safe_int(valor):
+            """Convierte a entero de forma segura"""
+            try:
+                if not valor:
+                    return 0
+                return int(float(str(valor).replace(',', '')))
+            except:
+                return 0
+
+        def safe_get(row, index, default=''):
+            """Obtiene un valor de la fila de forma segura"""
+            return row[index] if index < len(row) else default
+
+        for row in all_values[1:]:
+            if len(row) >= 3:  # Mínimo: timestamp, pais, tipo_dist
+                datos.append({
+                    'timestamp': safe_get(row, 0),
+                    'pais': safe_get(row, 1),
+                    'tipo_distribucion': safe_get(row, 2),
+                    'plataformas': {
+                        'Spotify': {
+                            'ingresos': safe_int(safe_get(row, 3)),
+                            'reproducciones': safe_int(safe_get(row, 4))
+                        },
+                        'Apple Music': {
+                            'ingresos': safe_int(safe_get(row, 5)),
+                            'reproducciones': safe_int(safe_get(row, 6))
+                        },
+                        'YouTube': {
+                            'ingresos': safe_int(safe_get(row, 7)),
+                            'reproducciones': safe_int(safe_get(row, 8))
+                        },
+                        'Tidal': {
+                            'ingresos': safe_int(safe_get(row, 9)),
+                            'reproducciones': safe_int(safe_get(row, 10))
+                        },
+                        'Amazon Music': {
+                            'ingresos': safe_int(safe_get(row, 11)),
+                            'reproducciones': safe_int(safe_get(row, 12))
+                        },
+                        'Otros': {
+                            'ingresos': safe_int(safe_get(row, 13)),
+                            'reproducciones': safe_int(safe_get(row, 14))
+                        }
+                    }
+                })
+
+        return datos
+    except gspread.exceptions.APIError as e:
+        st.error(f"❌ Error de API al cargar datos: {e}")
+        return []
+    except Exception as e:
+        st.error(f"❌ Error cargando respuestas streaming: {type(e).__name__}: {e}")
         return []
 
 # ==================== AUTENTICACIÓN ====================
@@ -1102,7 +1252,6 @@ def mapeo_streaming():
             campos_ok = pais != "Selecciona..." and tipo_dist != "Selecciona..."
             if campos_ok:
                 if st.button("Enviar respuesta ✅", use_container_width=True, key="streaming_submit"):
-                    # Guardar respuesta en session_state (sin Google Sheets por ahora)
                     respuesta = {
                         'timestamp': datetime.now().isoformat(),
                         'pais': pais,
@@ -1110,9 +1259,12 @@ def mapeo_streaming():
                         'tipo_distribucion': tipo_dist,
                         'plataformas': datos_plataformas
                     }
-                    st.session_state.streaming_data.append(respuesta)
-                    st.session_state.streaming_page = 2
-                    st.rerun()
+                    # Guardar en Google Sheets (Hoja2)
+                    if guardar_respuesta_streaming(respuesta):
+                        st.session_state.streaming_page = 2
+                        st.rerun()
+                    else:
+                        st.error("Error al guardar la respuesta. Por favor intenta de nuevo.")
             else:
                 st.button("Enviar respuesta ✅", use_container_width=True, disabled=True, key="streaming_submit_disabled")
                 st.caption("Completa país y tipo de distribución para continuar.")
@@ -1135,8 +1287,8 @@ def mostrar_visualizacion_streaming():
 
     PLATAFORMAS = ['Spotify', 'Apple Music', 'YouTube', 'Tidal', 'Amazon Music', 'Otros']
 
-    # Usar datos de session_state
-    datos = st.session_state.get('streaming_data', [])
+    # Cargar datos desde Google Sheets (Hoja2)
+    datos = cargar_respuestas_streaming()
 
     if not datos:
         st.info("📊 Aún no hay respuestas. ¡Sé el primero en participar!")
@@ -1235,20 +1387,21 @@ def mostrar_visualizacion_streaming():
 
     resumen_data = []
     for p in PLATAFORMAS:
-        ratio = (pct_ingresos[p] / pct_reproducciones[p]) if pct_reproducciones[p] > 0 else 0
+        # Ratio = promedio de pago por stream (ingresos / reproducciones)
+        pago_por_stream = (totales_ingresos[p] / totales_reproducciones[p]) if totales_reproducciones[p] > 0 else 0
         resumen_data.append({
             'Plataforma': p,
             'Total Ingresos ($)': f"${totales_ingresos[p]:,.0f}",
-            'Total Reproducciones': f"{totales_reproducciones[p]:,.0f}",
+            'Total Streams': f"{totales_reproducciones[p]:,.0f}",
             '% Ingresos': f"{pct_ingresos[p]:.1f}%",
-            '% Reproducciones': f"{pct_reproducciones[p]:.1f}%",
-            'Ratio Pago': f"{ratio:.2f}"
+            '% Streams': f"{pct_reproducciones[p]:.1f}%",
+            'Pago/Stream': f"${pago_por_stream:.4f}"
         })
 
     df_resumen = pd.DataFrame(resumen_data)
     st.dataframe(df_resumen, use_container_width=True, hide_index=True)
 
-    st.caption("**Ratio Pago:** Valores > 1 indican que la plataforma paga más en proporción a las reproducciones.")
+    st.caption("**Pago/Stream:** Promedio de dólares pagados por cada reproducción en la plataforma.")
 
     # Botón para volver a la encuesta
     if st.button("⬅️ Volver a la encuesta", key="volver_encuesta_streaming"):
