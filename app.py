@@ -1166,7 +1166,6 @@ if st.session_state.seccion == 'intro':
 
     st.markdown("""
     <div class="question-box">
-        <h3 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Bienvenida a TRAMAS</h3>
         <p style="line-height: 1.8;">
             TRAMAS es una plataforma de mapeos sociales para conocer redes y organizaciones culturales,
             sociales y creativas en América Latina. Es realizada por académicos y académicas de la región.
