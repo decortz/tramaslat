@@ -604,7 +604,7 @@ def mostrar_encuesta():
 
 def pagina_intro():
     st.markdown("""
-    <div class="question-box">
+    <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
         <p style="line-height: 1.8;">
             En el mundo del arte, la cultura y el emprendimiento social las personas solemos
             participar en múltiples espacios, proyectos u organizaciones. Esto lo hacemos por
@@ -644,7 +644,7 @@ def pagina_intro():
         st.caption("Debes aceptar el tratamiento de datos para continuar.")
     # Aviso de tratamiento de datos
     st.markdown("""
-    <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
+    <div class="question-box">
         <h4 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Aviso de Tratamiento de Datos Personales</h4>
         <p style="line-height: 1.6; font-size: 0.95rem;">
             Al participar en esta encuesta, autorizas el tratamiento de tus datos personales conforme a lo siguiente:
