@@ -379,7 +379,7 @@ def crear_scatter_dual(df_filtrado):
     ))
 
     fig.update_layout(
-        xaxis_title="Tipo de organización: de muy gubernamental (-10) a muy empresarial (+10)",
+        xaxis_title="Tipo de organización: de muy gubernamental (-20) a muy empresarial (+20)",
         yaxis_title="Nivel (0-100)",
         height=600,
         hovermode='closest',
