@@ -1292,9 +1292,6 @@ def mostrar_visualizacion_streaming():
 
     if not datos:
         st.info("📊 Aún no hay respuestas. ¡Sé el primero en participar!")
-        if st.button("Participar en la encuesta", key="ir_encuesta_streaming"):
-            st.session_state.streaming_page = 0
-            st.rerun()
         return
 
     # Convertir a DataFrame para filtrado
