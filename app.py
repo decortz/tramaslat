@@ -564,8 +564,8 @@ def mostrar_mapas():
 
     with col3:
         st.markdown("#### 3. Herramientas digitales y comunidades")
-        herr_counts = df_filtrado['num_herramientas'].value_counts().sort_index()
-        com_counts = df_filtrado['num_comunidades'].value_counts().sort_index()
+        herr_counts = df_filtrado['num_herramientas'].value_counts()
+        com_counts = df_filtrado['num_comunidades'].value_counts()
         fig3 = crear_grafico_barras_dual(herr_counts, com_counts, 'Herramientas', 'Comunidades')
         st.plotly_chart(fig3, use_container_width=True)
 
