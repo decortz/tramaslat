@@ -997,6 +997,277 @@ def pagina_gracias():
         st.session_state.page = 'vista_mapas'
         st.rerun()
 
+# ==================== MAPEO 2: STREAMING ====================
+
+def mapeo_streaming():
+    """Mapeo completo de pagos de plataformas de streaming a artistas"""
+
+    # Inicializar estado
+    if 'streaming_page' not in st.session_state:
+        st.session_state.streaming_page = 0
+    if 'streaming_data' not in st.session_state:
+        st.session_state.streaming_data = []
+
+    PLATAFORMAS = ['Spotify', 'Apple Music', 'YouTube', 'Tidal', 'Amazon Music', 'Otros']
+
+    # ===== PÁGINA 0: INTRODUCCIÓN =====
+    if st.session_state.streaming_page == 0:
+        st.markdown("""
+        <div class="question-box">
+            <p style="line-height: 1.8;">
+                En esta encuesta mostramos el porcentaje total de ingresos que obtienen los artistas
+                por las plataformas más reconocidas y la comparamos con el porcentaje de reproducciones
+                en cada una. De esa manera, buscamos identificar qué plataforma paga mejor.
+            </p>
+            <p style="line-height: 1.8; margin-top: 1rem; font-weight: 600;">
+                En esta encuesta no te pediremos ningún dato personal y la información se manejará
+                de manera totalmente anónima.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Checkbox de consentimiento
+        acepta = st.checkbox(
+            "Acepto participar en esta encuesta anónima y que mis datos sean utilizados para fines de investigación.",
+            key="acepta_streaming"
+        )
+
+        if acepta:
+            if st.button("INICIAR ENCUESTA ➡️", use_container_width=True, key="btn_iniciar_streaming"):
+                st.session_state.streaming_page = 1
+                st.rerun()
+        else:
+            st.button("INICIAR ENCUESTA ➡️", use_container_width=True, disabled=True, key="btn_iniciar_streaming_disabled")
+
+        # Texto de tratamiento de datos debajo
+        st.markdown("""
+        <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0; font-size: 0.9rem;">
+            <p><strong>Tratamiento de datos:</strong> Esta encuesta es completamente anónima. No recopilamos
+            datos personales identificables. La información agregada será utilizada únicamente para fines
+            de investigación académica por El Chorro Producciones y Huika Mexihco. Los resultados se
+            presentarán de forma agregada. Contacto: <a href="mailto:info@elchorro.com.co" style="color: #A870B0;">info@elchorro.com.co</a></p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ===== PÁGINA 1: ENCUESTA =====
+    elif st.session_state.streaming_page == 1:
+        st.markdown("### Encuesta de Ingresos por Streaming")
+
+        # Pregunta 1: País
+        paises = sorted([country.name for country in pycountry.countries])
+        pais = st.selectbox("1. ¿En qué país resides?", ["Selecciona..."] + paises, key="streaming_pais")
+
+        # Pregunta 2: Gestor de derechos
+        gestor = st.radio(
+            "2. ¿Eres el gestor de tus derechos de distribución?",
+            ["Sí", "No"],
+            key="streaming_gestor",
+            horizontal=True
+        )
+
+        # Pregunta 3: Tipo de distribución
+        tipo_dist = st.selectbox(
+            "3. ¿Qué tipo de distribución tienes?",
+            ["Selecciona...", "Disquera", "Disquera o distribuidora pequeña y regional",
+             "Plataforma de gestión independiente", "Totalmente independiente"],
+            key="streaming_tipo_dist"
+        )
+
+        # Pregunta 4: Ingresos y reproducciones por plataforma
+        st.markdown("### 4. ¿Cuántos ingresos y reproducciones recibes en cada plataforma?")
+        st.caption("Ingresa solo números sin puntos ni comas. Deja en 0 si no usas la plataforma.")
+
+        datos_plataformas = {}
+        for plataforma in PLATAFORMAS:
+            with st.expander(f"📀 {plataforma}", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    ingresos = st.number_input(
+                        f"Ingresos ($USD)",
+                        min_value=0,
+                        value=0,
+                        key=f"ing_{plataforma}"
+                    )
+                with col2:
+                    reproducciones = st.number_input(
+                        f"Reproducciones",
+                        min_value=0,
+                        value=0,
+                        key=f"rep_{plataforma}"
+                    )
+                datos_plataformas[plataforma] = {'ingresos': ingresos, 'reproducciones': reproducciones}
+
+        # Navegación
+        col_prev, col_next = st.columns([1, 1])
+        with col_prev:
+            if st.button("⬅️ Regresar", use_container_width=True, key="streaming_back"):
+                st.session_state.streaming_page = 0
+                st.rerun()
+        with col_next:
+            campos_ok = pais != "Selecciona..." and tipo_dist != "Selecciona..."
+            if campos_ok:
+                if st.button("Enviar respuesta ✅", use_container_width=True, key="streaming_submit"):
+                    # Guardar respuesta en session_state (sin Google Sheets por ahora)
+                    respuesta = {
+                        'timestamp': datetime.now().isoformat(),
+                        'pais': pais,
+                        'gestor': gestor,
+                        'tipo_distribucion': tipo_dist,
+                        'plataformas': datos_plataformas
+                    }
+                    st.session_state.streaming_data.append(respuesta)
+                    st.session_state.streaming_page = 2
+                    st.rerun()
+            else:
+                st.button("Enviar respuesta ✅", use_container_width=True, disabled=True, key="streaming_submit_disabled")
+                st.caption("Completa país y tipo de distribución para continuar.")
+
+    # ===== PÁGINA 2: GRACIAS =====
+    elif st.session_state.streaming_page == 2:
+        st.markdown("""
+        <div class="thanks-message">
+            ¡Gracias por participar!<br>
+            Tu respuesta nos ayuda a entender mejor el ecosistema del streaming musical.
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("Ver resultados del mapeo", use_container_width=True, key="streaming_ver_resultados"):
+            st.session_state.streaming_page = 3
+            st.rerun()
+
+        if st.button("Enviar otra respuesta", use_container_width=True, key="streaming_otra"):
+            st.session_state.streaming_page = 0
+            st.rerun()
+
+    # ===== PÁGINA 3: VISUALIZACIÓN =====
+    elif st.session_state.streaming_page == 3:
+        mostrar_visualizacion_streaming()
+
+def mostrar_visualizacion_streaming():
+    """Muestra la visualización del mapeo de streaming"""
+
+    PLATAFORMAS = ['Spotify', 'Apple Music', 'YouTube', 'Tidal', 'Amazon Music', 'Otros']
+
+    # Usar datos de session_state
+    datos = st.session_state.get('streaming_data', [])
+
+    if not datos:
+        st.info("📊 Aún no hay respuestas. ¡Sé el primero en participar!")
+        if st.button("Participar en la encuesta", key="ir_encuesta_streaming"):
+            st.session_state.streaming_page = 0
+            st.rerun()
+        return
+
+    # Convertir a DataFrame para filtrado
+    df = pd.DataFrame(datos)
+
+    # ===== FILTROS =====
+    st.markdown("### Filtros")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        paises_disponibles = ['Todos'] + sorted(df['pais'].unique().tolist())
+        filtro_pais = st.selectbox("País:", paises_disponibles, key="filtro_streaming_pais")
+
+    with col2:
+        tipos_disponibles = ['Todos'] + sorted(df['tipo_distribucion'].unique().tolist())
+        filtro_tipo = st.selectbox("Tipo de distribución:", tipos_disponibles, key="filtro_streaming_tipo")
+
+    # Aplicar filtros
+    df_filtrado = df.copy()
+    if filtro_pais != 'Todos':
+        df_filtrado = df_filtrado[df_filtrado['pais'] == filtro_pais]
+    if filtro_tipo != 'Todos':
+        df_filtrado = df_filtrado[df_filtrado['tipo_distribucion'] == filtro_tipo]
+
+    st.info(f"📊 Mostrando {len(df_filtrado)} de {len(df)} respuestas")
+
+    if len(df_filtrado) == 0:
+        st.warning("No hay datos con los filtros seleccionados.")
+        return
+
+    # ===== CALCULAR TOTALES POR PLATAFORMA =====
+    totales_ingresos = {p: 0 for p in PLATAFORMAS}
+    totales_reproducciones = {p: 0 for p in PLATAFORMAS}
+
+    for _, row in df_filtrado.iterrows():
+        plataformas_data = row['plataformas']
+        for plataforma in PLATAFORMAS:
+            if plataforma in plataformas_data:
+                totales_ingresos[plataforma] += plataformas_data[plataforma].get('ingresos', 0)
+                totales_reproducciones[plataforma] += plataformas_data[plataforma].get('reproducciones', 0)
+
+    # Calcular porcentajes
+    total_ing = sum(totales_ingresos.values())
+    total_rep = sum(totales_reproducciones.values())
+
+    if total_ing == 0 and total_rep == 0:
+        st.warning("No hay datos de ingresos o reproducciones para mostrar.")
+        return
+
+    pct_ingresos = {p: (v / total_ing * 100) if total_ing > 0 else 0 for p, v in totales_ingresos.items()}
+    pct_reproducciones = {p: (v / total_rep * 100) if total_rep > 0 else 0 for p, v in totales_reproducciones.items()}
+
+    # ===== GRÁFICO DE BARRAS =====
+    st.markdown("### Comparativa: % Ingresos vs % Reproducciones por Plataforma")
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        name='% Ingresos',
+        x=PLATAFORMAS,
+        y=[pct_ingresos[p] for p in PLATAFORMAS],
+        marker_color='#5D80B5',
+        text=[f"{pct_ingresos[p]:.1f}%" for p in PLATAFORMAS],
+        textposition='outside'
+    ))
+
+    fig.add_trace(go.Bar(
+        name='% Reproducciones',
+        x=PLATAFORMAS,
+        y=[pct_reproducciones[p] for p in PLATAFORMAS],
+        marker_color='#A870B0',
+        text=[f"{pct_reproducciones[p]:.1f}%" for p in PLATAFORMAS],
+        textposition='outside'
+    ))
+
+    fig.update_layout(
+        barmode='group',
+        xaxis_title="Plataforma",
+        yaxis_title="Porcentaje (%)",
+        height=500,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        plot_bgcolor='white',
+        yaxis=dict(gridcolor='#f0f0f0', range=[0, max(max(pct_ingresos.values()), max(pct_reproducciones.values())) * 1.2])
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ===== TABLA RESUMEN =====
+    st.markdown("### Resumen por Plataforma")
+
+    resumen_data = []
+    for p in PLATAFORMAS:
+        ratio = (pct_ingresos[p] / pct_reproducciones[p]) if pct_reproducciones[p] > 0 else 0
+        resumen_data.append({
+            'Plataforma': p,
+            'Total Ingresos ($)': f"${totales_ingresos[p]:,.0f}",
+            'Total Reproducciones': f"{totales_reproducciones[p]:,.0f}",
+            '% Ingresos': f"{pct_ingresos[p]:.1f}%",
+            '% Reproducciones': f"{pct_reproducciones[p]:.1f}%",
+            'Ratio Pago': f"{ratio:.2f}"
+        })
+
+    df_resumen = pd.DataFrame(resumen_data)
+    st.dataframe(df_resumen, use_container_width=True, hide_index=True)
+
+    st.caption("**Ratio Pago:** Valores > 1 indican que la plataforma paga más en proporción a las reproducciones.")
+
+    # Botón para volver a la encuesta
+    if st.button("⬅️ Volver a la encuesta", key="volver_encuesta_streaming"):
+        st.session_state.streaming_page = 0
+        st.rerun()
+
 # ==================== CONFIGURACIÓN ====================
 st.set_page_config(
     page_title="TRAMAS - Mapeos Sociales",
@@ -1085,6 +1356,12 @@ with st.sidebar:
     if st.button("📊 Gestión Cultural y Digital", use_container_width=True, key="btn_mapeo1"):
         st.session_state.seccion = 'mapeo1'
         st.session_state.page = 'vista_mapas'
+        st.session_state.encuesta_page = 0
+        st.rerun()
+
+    if st.button("🎵 Pagos de Streaming a Artistas", use_container_width=True, key="btn_mapeo2"):
+        st.session_state.seccion = 'mapeo2'
+        st.session_state.streaming_page = 0
         st.rerun()
 
     st.markdown("---")
@@ -1191,3 +1468,15 @@ elif st.session_state.seccion == 'mapeo1':
 
     with tab2:
         mostrar_mapas()
+
+# ==================== MAPEO STREAMING ====================
+elif st.session_state.seccion == 'mapeo2':
+    st.markdown('<div class="mapeo-title">¿Cuánto le pagan las plataformas de streaming a los artistas?</div>', unsafe_allow_html=True)
+
+    tab1, tab2 = st.tabs(["📝 Participar en Encuesta", "📊 Ver Resultados"])
+
+    with tab1:
+        mapeo_streaming()
+
+    with tab2:
+        mostrar_visualizacion_streaming()
