@@ -992,10 +992,6 @@ def pagina_gracias():
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("Ver mapeos y resultados", use_container_width=True):
-        st.session_state.page = 'vista_mapas'
-        st.rerun()
-
 # ==================== MAPEO 2: STREAMING ====================
 
 def mapeo_streaming():
@@ -1129,14 +1125,6 @@ def mapeo_streaming():
             Tu respuesta nos ayuda a entender mejor el ecosistema del streaming musical.
         </div>
         """, unsafe_allow_html=True)
-
-        if st.button("Ver resultados del mapeo", use_container_width=True, key="streaming_ver_resultados"):
-            st.session_state.streaming_page = 3
-            st.rerun()
-
-        if st.button("Enviar otra respuesta", use_container_width=True, key="streaming_otra"):
-            st.session_state.streaming_page = 0
-            st.rerun()
 
     # ===== PÁGINA 3: VISUALIZACIÓN =====
     elif st.session_state.streaming_page == 3:
