@@ -311,43 +311,48 @@ def guardar_respuesta_streaming(respuesta, max_reintentos=3):
 
 def cargar_respuestas_streaming():
     """Carga todas las respuestas de streaming desde Hoja2"""
-    sheet = conectar_google_sheets_streaming(mostrar_errores=False)
+    sheet = conectar_google_sheets_streaming(mostrar_errores=True)
     if sheet is None:
         return []
 
     try:
         all_values = sheet.get_all_values()
+
         if len(all_values) <= 1:
             return []
 
-        # Procesar manualmente ya que el formato es especial
-        headers = all_values[0]
         datos = []
 
-        for row in all_values[1:]:
-            if len(row) >= 9:
-                # Parsear cada plataforma (formato: "ingresos|reproducciones")
-                def parse_plataforma(valor):
-                    try:
-                        parts = str(valor).split('|')
-                        return {
-                            'ingresos': int(parts[0]) if parts[0] else 0,
-                            'reproducciones': int(parts[1]) if len(parts) > 1 and parts[1] else 0
-                        }
-                    except:
-                        return {'ingresos': 0, 'reproducciones': 0}
+        def parse_plataforma(valor):
+            """Parsea el formato 'ingresos|reproducciones'"""
+            try:
+                if not valor:
+                    return {'ingresos': 0, 'reproducciones': 0}
+                parts = str(valor).split('|')
+                return {
+                    'ingresos': int(float(parts[0])) if parts[0] else 0,
+                    'reproducciones': int(float(parts[1])) if len(parts) > 1 and parts[1] else 0
+                }
+            except:
+                return {'ingresos': 0, 'reproducciones': 0}
 
+        def safe_get(row, index, default=''):
+            """Obtiene un valor de la fila de forma segura"""
+            return row[index] if index < len(row) else default
+
+        for row in all_values[1:]:
+            if len(row) >= 3:  # Mínimo: timestamp, pais, tipo_dist
                 datos.append({
-                    'timestamp': row[0],
-                    'pais': row[1],
-                    'tipo_distribucion': row[2],
+                    'timestamp': safe_get(row, 0),
+                    'pais': safe_get(row, 1),
+                    'tipo_distribucion': safe_get(row, 2),
                     'plataformas': {
-                        'Spotify': parse_plataforma(row[3]),
-                        'Apple Music': parse_plataforma(row[4]),
-                        'YouTube': parse_plataforma(row[5]),
-                        'Tidal': parse_plataforma(row[6]),
-                        'Amazon Music': parse_plataforma(row[7]),
-                        'Otros': parse_plataforma(row[8])
+                        'Spotify': parse_plataforma(safe_get(row, 3)),
+                        'Apple Music': parse_plataforma(safe_get(row, 4)),
+                        'YouTube': parse_plataforma(safe_get(row, 5)),
+                        'Tidal': parse_plataforma(safe_get(row, 6)),
+                        'Amazon Music': parse_plataforma(safe_get(row, 7)),
+                        'Otros': parse_plataforma(safe_get(row, 8))
                     }
                 })
 
@@ -356,7 +361,7 @@ def cargar_respuestas_streaming():
         st.error(f"❌ Error de API al cargar datos: {e}")
         return []
     except Exception as e:
-        st.error(f"❌ Error cargando respuestas: {type(e).__name__}: {e}")
+        st.error(f"❌ Error cargando respuestas streaming: {type(e).__name__}: {e}")
         return []
 
 # ==================== AUTENTICACIÓN ====================
