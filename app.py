@@ -1420,8 +1420,8 @@ st.markdown("""
     .tramas-logo {
         background-color: #000000; color: white; padding: 1rem 0.5rem;
         border-radius: 10px; font-family: 'Roboto', sans-serif; font-weight: 700;
-        font-size: 2.5rem; text-align: center; margin-bottom: 0.25rem;
-        display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+        font-size: 2.5rem; text-align: center; margin-bottom: 0.1rem;
+        display: flex; align-items: center; justify-content: center; gap: 0.1rem;
     }
     .tramas-logo-icon { font-size: 2rem; color: #808080; }
 
