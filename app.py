@@ -2,8 +2,6 @@ import streamlit as st
 from datetime import datetime
 import pandas as pd
 import plotly.graph_objects as go
-import hashlib
-import io
 import gspread
 from google.oauth2.service_account import Credentials
 import pycountry
@@ -389,103 +387,6 @@ def cargar_respuestas_streaming():
         st.error(f"❌ Error cargando respuestas streaming: {type(e).__name__}: {e}")
         return []
 
-# ==================== AUTENTICACIÓN ====================
-
-ADMIN_USER = "admin_tramas"
-ADMIN_PASSWORD = "tramas2025"
-
-def verificar_credenciales(username, password):
-    return username == ADMIN_USER and password == ADMIN_PASSWORD
-
-def inicializar_sesion():
-    if 'autenticado' not in st.session_state:
-        st.session_state.autenticado = False
-    if 'username' not in st.session_state:
-        st.session_state.username = None
-
-def login():
-    st.session_state.autenticado = True
-    st.session_state.username = ADMIN_USER
-
-def logout():
-    st.session_state.autenticado = False
-    st.session_state.username = None
-
-def esta_autenticado():
-    return st.session_state.get('autenticado', False)
-
-# ==================== EXPORTACIÓN CSV ====================
-
-def preparar_datos_csv(respuestas):
-    if not respuestas:
-        return None
-
-    datos_procesados = []
-    for respuesta in respuestas:
-        dato = {
-            'timestamp': respuesta.get('timestamp', ''),
-            'pais': respuesta.get('pais', ''),
-            'ciudad': respuesta.get('ciudad', ''),
-            'edad': respuesta.get('edad', ''),
-            'nivel_academico': respuesta.get('nivel_academico', ''),
-            'num_organizaciones': respuesta.get('num_organizaciones', 0),
-            'num_proyectos': respuesta.get('num_proyectos', 0),
-            'jerarquia': respuesta.get('jerarquia', ''),
-            'planeacion': respuesta.get('planeacion', ''),
-            'nivel_formalizacion': respuesta.get('nivel_formalizacion', 0),
-            'nivel_digitalizacion': respuesta.get('nivel_digitalizacion', 0),
-            'tipo_org_score': respuesta.get('tipo_org_score', 0)
-        }
-        datos_procesados.append(dato)
-
-    return pd.DataFrame(datos_procesados)
-
-def generar_csv(df):
-    if df is None or df.empty:
-        return None
-    buffer = io.StringIO()
-    df.to_csv(buffer, index=False, encoding='utf-8-sig')
-    buffer.seek(0)
-    return buffer.getvalue()
-
-def mostrar_boton_descarga():
-    if not esta_autenticado():
-        return
-
-    respuestas = cargar_respuestas_sheets()
-
-    if not respuestas:
-        st.info("ℹ️ No hay datos disponibles para descargar")
-        return
-
-    df = preparar_datos_csv(respuestas)
-
-    if df is None or df.empty:
-        st.warning("⚠️ No hay datos procesados para descargar")
-        return
-
-    csv_data = generar_csv(df)
-
-    if csv_data:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        nombre_archivo = f"mapeo_gestion_cultural_{timestamp}.csv"
-
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.success(f"📊 **{len(df)} respuestas** listas para descargar")
-        with col2:
-            st.download_button(
-                label="⬇️ Descargar CSV",
-                data=csv_data,
-                file_name=nombre_archivo,
-                mime="text/csv",
-                use_container_width=True
-            )
-
-        with st.expander("👁️ Vista previa de los datos"):
-            st.dataframe(df.head(10), use_container_width=True)
-            st.caption(f"Mostrando las primeras 10 de {len(df)} filas")
-
 # ==================== FUNCIONES DE VISUALIZACIÓN ====================
 
 def crear_scatter_dual(df_filtrado):
@@ -725,12 +626,6 @@ def mostrar_mapas():
         ia_pag_counts = df_filtrado['num_ias_pagadas'].value_counts().sort_index()
         fig4 = crear_grafico_barras_dual(ia_counts, ia_pag_counts, 'IAs usadas', 'IAs pagadas')
         st.plotly_chart(fig4, use_container_width=True)
-
-    # Descarga para admin
-    if esta_autenticado():
-        st.markdown("---")
-        st.markdown("### 📥 Descarga de Datos (Administrador)")
-        mostrar_boton_descarga()
 
 # ==================== FUNCIONES DE LA ENCUESTA ====================
 
@@ -1466,8 +1361,6 @@ if 'encuesta_page' not in st.session_state:
 if 'temp_data' not in st.session_state:
     st.session_state.temp_data = {}
 
-inicializar_sesion()
-
 # ==================== SIDEBAR ====================
 with st.sidebar:
     st.markdown("""
@@ -1518,56 +1411,6 @@ with st.sidebar:
         st.markdown('<a href="https://www.elchorro.com.co" target="_blank"><img src="https://elchorroco.wordpress.com/wp-content/uploads/2025/04/ch-plano.png" width="50"></a>', unsafe_allow_html=True)
     with col2:
         st.markdown('<a href="https://www.huikamexihco.com.mx" target="_blank"><img src="https://huikamexihco.com.mx/wp-content/uploads/2021/04/huika-mexihco.png" width="50"></a>', unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    if esta_autenticado():
-        st.markdown("### 👤 Sesión Activa")
-        st.info(f"**Usuario:** {st.session_state.username}")
-        if st.button("🚪 Cerrar sesión", use_container_width=True, key="btn_logout"):
-            logout()
-            st.rerun()
-
-        # Diagnóstico de conexión para admin
-        with st.expander("🔧 Diagnóstico Google Sheets"):
-            if "gcp_service_account" in st.secrets:
-                st.success("✅ gcp_service_account configurado")
-                if "client_email" in st.secrets["gcp_service_account"]:
-                    email = st.secrets["gcp_service_account"]["client_email"]
-                    st.code(email, language=None)
-                    st.caption("☝️ Comparte tu Sheet con este email como Editor")
-            else:
-                st.error("❌ gcp_service_account NO configurado")
-
-            if "google_sheets" in st.secrets:
-                st.success("✅ google_sheets configurado")
-                if "spreadsheet_id" in st.secrets["google_sheets"]:
-                    st.code(st.secrets["google_sheets"]["spreadsheet_id"], language=None)
-            else:
-                st.error("❌ google_sheets NO configurado")
-
-            if st.button("🧪 Probar conexión", key="test_conn"):
-                sheet = conectar_google_sheets()
-                if sheet:
-                    st.success(f"✅ Conectado a: {sheet.title}")
-                    try:
-                        count = len(sheet.get_all_values())
-                        st.info(f"📊 Filas en el sheet: {count}")
-                    except Exception as e:
-                        st.warning(f"No se pudo contar filas: {e}")
-    else:
-        st.markdown("### 🔐 Acceso Administrador")
-        with st.form("login_form"):
-            username = st.text_input("Usuario", placeholder="admin_tramas")
-            password = st.text_input("Contraseña", type="password", placeholder="••••••••")
-            submit = st.form_submit_button("Iniciar sesión", use_container_width=True)
-            if submit:
-                if verificar_credenciales(username, password):
-                    login()
-                    st.success("✅ Sesión iniciada")
-                    st.rerun()
-                else:
-                    st.error("❌ Credenciales incorrectas")
 
 # ==================== PÁGINA INTRO ====================
 if st.session_state.seccion == 'intro':
