@@ -1053,7 +1053,7 @@ def mapeo_streaming():
     # ===== PÁGINA 0: INTRODUCCIÓN =====
     if st.session_state.streaming_page == 0:
         st.markdown("""
-        <div class="question-box", style= "style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
+        <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
             <p style="line-height: 1.8;">
                 En esta encuesta mostramos el porcentaje total de ingresos que obtienen los artistas
                 por las plataformas más reconocidas y la comparamos con el porcentaje de reproducciones
