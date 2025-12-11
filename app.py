@@ -1053,7 +1053,7 @@ def mapeo_streaming():
     # ===== PÁGINA 0: INTRODUCCIÓN =====
     if st.session_state.streaming_page == 0:
         st.markdown("""
-        <div class="question-box">
+        <div class="question-box", style= "style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
             <p style="line-height: 1.8;">
                 En esta encuesta mostramos el porcentaje total de ingresos que obtienen los artistas
                 por las plataformas más reconocidas y la comparamos con el porcentaje de reproducciones
@@ -1081,8 +1081,9 @@ def mapeo_streaming():
 
         # Texto de tratamiento de datos debajo
         st.markdown("""
-        <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0; font-size: 0.9rem;">
-            <p><strong>Tratamiento de datos:</strong> Esta encuesta es completamente anónima. No recopilamos
+        <div class="question-box">
+        <h4 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Aviso de Tratamiento de Datos Personales</h4>
+            <p style="line-height: 1.6; font-size: 0.95rem;">Esta encuesta es completamente anónima. No recopilamos
             datos personales identificables. La información agregada será utilizada únicamente para fines
             de investigación académica por El Chorro Producciones y Huika Mexihco. Los resultados se
             presentarán de forma agregada. Contacto: <a href="mailto:info@elchorro.com.co" style="color: #A870B0;">info@elchorro.com.co</a></p>
