@@ -575,14 +575,14 @@ def mostrar_mapas():
     with col_prom1:
         st.markdown(f"""
         <div style="background-color: #5D80B5; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
-            <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">Promedio de organizaciones a las que pertenecen las personas:</p>
+            <p style="font-size: 1.3rem; margin-bottom: 0.5rem;">Promedio de organizaciones a las que pertenecen las personas:</p>
             <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_orgs:.1f}</p>
         </div>
         """, unsafe_allow_html=True)
     with col_prom2:
         st.markdown(f"""
         <div style="background-color: #A870B0; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
-            <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">Promedio de proyectos en los que participan las personas</p>
+            <p style="font-size: 1.3rem; margin-bottom: 0.5rem;">Promedio de proyectos en los que participan las personas</p>
             <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_proys:.1f}</p>
         </div>
         """, unsafe_allow_html=True)
