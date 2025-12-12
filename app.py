@@ -595,8 +595,8 @@ def mostrar_mapas():
     with col1:
         st.markdown("#### 2a. Tipos de jerarquía")
         jer_counts = df_filtrado['jerarquia'].value_counts()
-        # Colores azules
-        colores_azul = ['#1a365d', '#2c5282', '#3182ce', '#63b3ed', '#90cdf4']
+        # Colores azules con alto contraste
+        colores_azul = ['#03045e', '#0077b6', '#00b4d8', '#90e0ef', '#caf0f8']
         fig_jer = go.Figure(data=[go.Pie(
             labels=jer_counts.index.tolist(),
             values=jer_counts.values.tolist(),
@@ -616,24 +616,55 @@ def mostrar_mapas():
     with col2:
         st.markdown("#### 2b. Tipos de planeación")
         plan_counts = df_filtrado['planeacion'].value_counts()
-        fig2 = crear_grafico_barras_dual(jer_counts, plan_counts, 'Jerarquía', 'Planeación')
-        st.plotly_chart(fig2, use_container_width=True)
+        # Colores morados con alto contraste
+        colores_morado = ['#4a0080', '#7b2cbf', '#c77dff', '#e0aaff', '#f3d5ff', '#fce4ff']
+        fig_plan = go.Figure(data=[go.Pie(
+            labels=plan_counts.index.tolist(),
+            values=plan_counts.values.tolist(),
+            hole=0.3,
+            marker_colors=colores_morado[:len(plan_counts)],
+            textinfo='percent',
+            textposition='outside'
+        )])
+        fig_plan.update_layout(
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, font=dict(size=10)),
+            height=350,
+            margin=dict(t=20, b=80, l=20, r=20)
+        )
+        st.plotly_chart(fig_plan, use_container_width=True)
 
-    col3, col4 = st.columns(2)
+    # 3. Promedios de herramientas digitales
+    st.markdown("#### 3. Uso promedio de herramientas digitales por persona")
 
-    with col3:
-        st.markdown("#### 3. Herramientas digitales y comunidades")
-        herr_counts = df_filtrado['num_herramientas'].value_counts()
-        com_counts = df_filtrado['num_comunidades'].value_counts()
-        fig3 = crear_grafico_barras_dual(herr_counts, com_counts, 'Herramientas', 'Comunidades')
-        st.plotly_chart(fig3, use_container_width=True)
+    prom_herramientas = df_filtrado['num_herramientas'].mean()
+    prom_herr_pagadas = df_filtrado['num_herramientas_pagadas'].mean() if 'num_herramientas_pagadas' in df_filtrado.columns else 0
+    prom_ias = df_filtrado['num_ias'].mean()
+    prom_ias_pagadas = df_filtrado['num_ias_pagadas'].mean()
+    prom_comunidades = df_filtrado['num_comunidades'].mean()
 
-    with col4:
-        st.markdown("#### 4. IAs utilizadas y IAs pagadas")
-        ia_counts = df_filtrado['num_ias'].value_counts().sort_index()
-        ia_pag_counts = df_filtrado['num_ias_pagadas'].value_counts().sort_index()
-        fig4 = crear_grafico_barras_dual(ia_counts, ia_pag_counts, 'IAs usadas', 'IAs pagadas')
-        st.plotly_chart(fig4, use_container_width=True)
+    categorias = ['Herramientas\ndigitales', 'Herramientas\npagadas', 'IAs\nusadas', 'IAs\npagadas', 'Comunidades']
+    promedios = [prom_herramientas, prom_herr_pagadas, prom_ias, prom_ias_pagadas, prom_comunidades]
+    # Colores con alto contraste
+    colores_barras = ['#1e3a5f', '#0077b6', '#7b2cbf', '#c77dff', '#2d6a4f']
+
+    fig_herr = go.Figure(data=[
+        go.Bar(
+            x=categorias,
+            y=promedios,
+            marker_color=colores_barras,
+            text=[f"{p:.1f}" for p in promedios],
+            textposition='outside'
+        )
+    ])
+    fig_herr.update_layout(
+        yaxis_title="Promedio por persona",
+        height=400,
+        showlegend=False,
+        plot_bgcolor='white',
+        yaxis=dict(gridcolor='#e0e0e0')
+    )
+    st.plotly_chart(fig_herr, use_container_width=True)
 
 # ==================== FUNCIONES DE LA ENCUESTA ====================
 
