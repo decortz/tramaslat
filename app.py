@@ -435,7 +435,7 @@ def crear_scatter_dual(df_filtrado):
         height=600,
         hovermode='closest',
         plot_bgcolor='white',
-        xaxis=dict(gridcolor='#f0f0f0', range=[-12, 12]),
+        xaxis=dict(gridcolor='#f0f0f0', range=[-20, 20]),
         yaxis=dict(gridcolor='#f0f0f0', range=[-5, 105])
     )
 
@@ -616,54 +616,24 @@ def mostrar_mapas():
     with col2:
         st.markdown("#### 2b. Tipos de planeación")
         plan_counts = df_filtrado['planeacion'].value_counts()
-        # Colores morados
-        colores_morado = ['#553c9a', '#6b46c1', '#805ad5', '#9f7aea', '#b794f4', '#d6bcfa']
-        fig_plan = go.Figure(data=[go.Pie(
-            labels=plan_counts.index.tolist(),
-            values=plan_counts.values.tolist(),
-            hole=0.3,
-            marker_colors=colores_morado[:len(plan_counts)],
-            textinfo='percent',
-            textposition='outside'
-        )])
-        fig_plan.update_layout(
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, font=dict(size=10)),
-            height=350,
-            margin=dict(t=20, b=80, l=20, r=20)
-        )
-        st.plotly_chart(fig_plan, use_container_width=True)
+        fig2 = crear_grafico_barras_dual(jer_counts, plan_counts, 'Jerarquía', 'Planeación')
+        st.plotly_chart(fig2, use_container_width=True)
 
-    # 3. Promedios de herramientas digitales
-    st.markdown("#### 3. Uso promedio de herramientas digitales por persona")
+    col3, col4 = st.columns(2)
 
-    prom_herramientas = df_filtrado['num_herramientas'].mean()
-    prom_herr_pagadas = df_filtrado.get('num_herramientas_pagadas', pd.Series([0])).mean() if 'num_herramientas_pagadas' in df_filtrado.columns else 0
-    prom_ias = df_filtrado['num_ias'].mean()
-    prom_ias_pagadas = df_filtrado['num_ias_pagadas'].mean()
-    prom_comunidades = df_filtrado['num_comunidades'].mean()
+    with col3:
+        st.markdown("#### 3. Herramientas digitales y comunidades")
+        herr_counts = df_filtrado['num_herramientas'].value_counts()
+        com_counts = df_filtrado['num_comunidades'].value_counts()
+        fig3 = crear_grafico_barras_dual(herr_counts, com_counts, 'Herramientas', 'Comunidades')
+        st.plotly_chart(fig3, use_container_width=True)
 
-    categorias = ['Herramientas\ndigitales', 'Herramientas\npagadas', 'IAs\nusadas', 'IAs\npagadas', 'Comunidades']
-    promedios = [prom_herramientas, prom_herr_pagadas, prom_ias, prom_ias_pagadas, prom_comunidades]
-    colores = ['#5D80B5', '#3182ce', '#A870B0', '#805ad5', '#38a169']
-
-    fig_herr = go.Figure(data=[
-        go.Bar(
-            x=categorias,
-            y=promedios,
-            marker_color=colores,
-            text=[f"{p:.1f}" for p in promedios],
-            textposition='outside'
-        )
-    ])
-    fig_herr.update_layout(
-        yaxis_title="Promedio por persona",
-        height=400,
-        showlegend=False,
-        plot_bgcolor='white',
-        yaxis=dict(gridcolor='#f0f0f0')
-    )
-    st.plotly_chart(fig_herr, use_container_width=True)
+    with col4:
+        st.markdown("#### 4. IAs utilizadas y IAs pagadas")
+        ia_counts = df_filtrado['num_ias'].value_counts().sort_index()
+        ia_pag_counts = df_filtrado['num_ias_pagadas'].value_counts().sort_index()
+        fig4 = crear_grafico_barras_dual(ia_counts, ia_pag_counts, 'IAs usadas', 'IAs pagadas')
+        st.plotly_chart(fig4, use_container_width=True)
 
 # ==================== FUNCIONES DE LA ENCUESTA ====================
 
@@ -687,7 +657,7 @@ def mostrar_encuesta():
 
 def pagina_intro():
     st.markdown("""
-    <div class="question-box">
+    <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
         <p style="line-height: 1.8;">
             En el mundo del arte, la cultura y el emprendimiento social las personas solemos
             participar en múltiples espacios, proyectos u organizaciones. Esto lo hacemos por
@@ -711,22 +681,35 @@ def pagina_intro():
         </p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Checkbox de consentimiento
+    acepta_datos = st.checkbox(
+        "He leído y acepto el tratamiento de mis datos personales.",
+        key="acepta_datos"
+    )
 
+    if acepta_datos:
+        if st.button("INICIAR ENCUESTA ➡️", use_container_width=True):
+            st.session_state.encuesta_page = 1
+            st.rerun()
+    else:
+        st.button("INICIAR ENCUESTA ➡️", use_container_width=True, disabled=True)
+        st.caption("Debes aceptar el tratamiento de datos para continuar.")
+    
     # Aviso de tratamiento de datos
     st.markdown("""
-    <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
+    <div class="question-box">
         <h4 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Aviso de Tratamiento de Datos Personales</h4>
         <p style="line-height: 1.6; font-size: 0.95rem;">
             Al participar en esta encuesta, autorizas el tratamiento de tus datos personales conforme a lo siguiente:
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
             <strong>Responsables:</strong> El Chorro Producciones (Colombia) y Huika Mexihco (México),
-            en el marco del proyecto de investigación postdoctoral "TRAMAS: Tejidos en Red, Análisis y Mapeos Sociales".
+            en el marco del proyecto de investigación enmarcado en la plataforma "TRAMAS: Tejidos en Red, Análisis y Mapeos Sociales".
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
             <strong>Finalidad:</strong> Tus respuestas serán utilizadas exclusivamente para fines de investigación
-            académica sobre gestión cultural y digital en Latinoamérica. Los resultados se presentarán de forma
-            agregada y anónima.
+            académica. Los resultados se presentarán de forma agregada y anónima.
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
             <strong>Datos recopilados:</strong> Información sobre tu participación en organizaciones y proyectos
@@ -747,20 +730,6 @@ def pagina_intro():
         </p>
     </div>
     """, unsafe_allow_html=True)
-
-    # Checkbox de consentimiento
-    acepta_datos = st.checkbox(
-        "He leído y acepto el tratamiento de mis datos personales según lo descrito anteriormente.",
-        key="acepta_datos"
-    )
-
-    if acepta_datos:
-        if st.button("INICIAR ENCUESTA ➡️", use_container_width=True):
-            st.session_state.encuesta_page = 1
-            st.rerun()
-    else:
-        st.button("INICIAR ENCUESTA ➡️", use_container_width=True, disabled=True)
-        st.caption("Debes aceptar el tratamiento de datos para continuar.")
 
 def pagina_cantidad():
     st.markdown("""
@@ -1042,7 +1011,7 @@ def pagina_demograficos():
         )
 
         if campos_completos:
-            if st.button("Finalizar ✅", use_container_width=True):
+            if st.button("Finalizar ✅ \u2028 (si muestra error, vuelve a dar click acá, no te regreses)", use_container_width=True):
                 respuesta_completa = {
                     **st.session_state.temp_data,
                     'demograficos': {
@@ -1076,10 +1045,6 @@ def pagina_gracias():
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("Ver mapeos y resultados", use_container_width=True):
-        st.session_state.page = 'vista_mapas'
-        st.rerun()
-
 # ==================== MAPEO 2: STREAMING ====================
 
 def mapeo_streaming():
@@ -1096,7 +1061,7 @@ def mapeo_streaming():
     # ===== PÁGINA 0: INTRODUCCIÓN =====
     if st.session_state.streaming_page == 0:
         st.markdown("""
-        <div class="question-box">
+        <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
             <p style="line-height: 1.8;">
                 En esta encuesta mostramos el porcentaje total de ingresos que obtienen los artistas
                 por las plataformas más reconocidas y la comparamos con el porcentaje de reproducciones
@@ -1124,8 +1089,9 @@ def mapeo_streaming():
 
         # Texto de tratamiento de datos debajo
         st.markdown("""
-        <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0; font-size: 0.9rem;">
-            <p><strong>Tratamiento de datos:</strong> Esta encuesta es completamente anónima. No recopilamos
+        <div class="question-box">
+        <h4 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Aviso de Tratamiento de Datos Personales</h4>
+            <p style="line-height: 1.6; font-size: 0.95rem;">Esta encuesta es completamente anónima. No recopilamos
             datos personales identificables. La información agregada será utilizada únicamente para fines
             de investigación académica por El Chorro Producciones y Huika Mexihco. Los resultados se
             presentarán de forma agregada. Contacto: <a href="mailto:info@elchorro.com.co" style="color: #A870B0;">info@elchorro.com.co</a></p>
@@ -1189,7 +1155,7 @@ def mapeo_streaming():
         with col_next:
             campos_ok = pais != "Selecciona..." and tipo_dist != "Selecciona..."
             if campos_ok:
-                if st.button("Enviar respuesta ✅", use_container_width=True, key="streaming_submit"):
+                if st.button("Enviar respuesta ✅ (si muestra error, solo vuelve a dar click acá, no te regreses)", use_container_width=True, key="streaming_submit"):
                     respuesta = {
                         'timestamp': datetime.now().isoformat(),
                         'pais': pais,
@@ -1216,14 +1182,6 @@ def mapeo_streaming():
         </div>
         """, unsafe_allow_html=True)
 
-        if st.button("Ver resultados del mapeo", use_container_width=True, key="streaming_ver_resultados"):
-            st.session_state.streaming_page = 3
-            st.rerun()
-
-        if st.button("Enviar otra respuesta", use_container_width=True, key="streaming_otra"):
-            st.session_state.streaming_page = 0
-            st.rerun()
-
     # ===== PÁGINA 3: VISUALIZACIÓN =====
     elif st.session_state.streaming_page == 3:
         mostrar_visualizacion_streaming()
@@ -1238,9 +1196,6 @@ def mostrar_visualizacion_streaming():
 
     if not datos:
         st.info("📊 Aún no hay respuestas. ¡Sé el primero en participar!")
-        if st.button("Participar en la encuesta", key="ir_encuesta_streaming"):
-            st.session_state.streaming_page = 0
-            st.rerun()
         return
 
     # Convertir a DataFrame para filtrado
@@ -1341,18 +1296,13 @@ def mostrar_visualizacion_streaming():
             'Total Streams': f"{totales_reproducciones[p]:,.0f}",
             '% Ingresos': f"{pct_ingresos[p]:.1f}%",
             '% Streams': f"{pct_reproducciones[p]:.1f}%",
-            'Pago/Stream': f"${pago_por_stream:.4f}"
+            'Pago/Stream': f"${pago_por_stream:.2f}"
         })
 
     df_resumen = pd.DataFrame(resumen_data)
     st.dataframe(df_resumen, use_container_width=True, hide_index=True)
 
     st.caption("**Pago/Stream:** Promedio de dólares pagados por cada reproducción en la plataforma.")
-
-    # Botón para volver a la encuesta
-    if st.button("⬅️ Volver a la encuesta", key="volver_encuesta_streaming"):
-        st.session_state.streaming_page = 0
-        st.rerun()
 
 # ==================== CONFIGURACIÓN ====================
 st.set_page_config(
@@ -1372,10 +1322,10 @@ st.markdown("""
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { color: black; }
 
     .tramas-logo {
-        background-color: #000000; color: white; padding: 1rem 0.5rem;
+        background-color: #000000; color: white; padding: 0.3rem 0.2rem;
         border-radius: 10px; font-family: 'Roboto', sans-serif; font-weight: 700;
-        font-size: 2rem; text-align: center; margin-bottom: 0.5rem;
-        display: flex; align-items: center; justify-content: center; gap: 0.3rem;
+        font-size: 2.5rem; text-align: center; margin-bottom: 0.1rem;
+        display: flex; align-items: center; justify-content: center; gap: 0.1rem;
     }
     .tramas-logo-icon { font-size: 2rem; color: #808080; }
 
@@ -1473,12 +1423,10 @@ with st.sidebar:
 
 # ==================== PÁGINA INTRO ====================
 if st.session_state.seccion == 'intro':
-    st.markdown('<div class="mapeo-title">TRAMAS</div>', unsafe_allow_html=True)
-    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #666;">Tejidos en Red: Análisis y Mapeos Sociales</p>', unsafe_allow_html=True)
+    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #000000;"><strong>Tejidos en Red: Análisis y Mapeos Sociales</strong>', unsafe_allow_html=True)
 
     st.markdown("""
     <div class="question-box">
-        <h3 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Bienvenida a TRAMAS</h3>
         <p style="line-height: 1.8;">
             TRAMAS es una plataforma de mapeos sociales para conocer redes y organizaciones culturales,
             sociales y creativas en América Latina. Es realizada por académicos y académicas de la región.
