@@ -441,32 +441,6 @@ def crear_scatter_dual(df_filtrado):
 
     return fig
 
-def crear_grafico_barras_dual(data1, data2, label1, label2, color1='#5D80B5', color2='#A870B0'):
-    """Crea gráfico de barras comparativo con dos series"""
-    fig = go.Figure()
-
-    fig.add_trace(go.Bar(
-        name=label1,
-        x=list(data1.index),
-        y=list(data1.values),
-        marker_color=color1
-    ))
-
-    fig.add_trace(go.Bar(
-        name=label2,
-        x=list(data2.index),
-        y=list(data2.values),
-        marker_color=color2
-    ))
-
-    fig.update_layout(
-        barmode='group',
-        xaxis_tickangle=-45,
-        height=400
-    )
-
-    return fig
-
 def filtrar_datos(df, filtros):
     """Aplica filtros demográficos a un DataFrame"""
     df_filtrado = df.copy()
@@ -592,21 +566,55 @@ def mostrar_mapas():
     # GRÁFICOS COMPLEMENTARIOS
     st.markdown("### Gráficos Complementarios")
 
+    # 1. Promedios de organizaciones y proyectos
+    st.markdown("#### 1. Participación promedio")
+    prom_orgs = df_filtrado['num_organizaciones'].mean()
+    prom_proys = df_filtrado['num_proyectos'].mean()
+
+    col_prom1, col_prom2 = st.columns(2)
+    with col_prom1:
+        st.markdown(f"""
+        <div style="background-color: #5D80B5; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
+            <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Promedio de organizaciones</p>
+            <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_orgs:.1f}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_prom2:
+        st.markdown(f"""
+        <div style="background-color: #A870B0; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
+            <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Promedio de proyectos</p>
+            <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_proys:.1f}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("")
+
+    # 2. Gráficas de círculo para jerarquía y planeación
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("#### 1. Cantidad de organizaciones + proyectos")
-        fig1 = go.Figure(data=[
-            go.Bar(x=df_filtrado['total_entidades'].value_counts().sort_index().index.tolist(),
-                   y=df_filtrado['total_entidades'].value_counts().sort_index().values.tolist(),
-                   marker_color='#5D80B5')
-        ])
-        fig1.update_layout(showlegend=False, xaxis_title="Cantidad", yaxis_title="Frecuencia")
-        st.plotly_chart(fig1, use_container_width=True)
+        st.markdown("#### 2a. Tipos de jerarquía")
+        jer_counts = df_filtrado['jerarquia'].value_counts()
+        # Colores azules
+        colores_azul = ['#1a365d', '#2c5282', '#3182ce', '#63b3ed', '#90cdf4']
+        fig_jer = go.Figure(data=[go.Pie(
+            labels=jer_counts.index.tolist(),
+            values=jer_counts.values.tolist(),
+            hole=0.3,
+            marker_colors=colores_azul[:len(jer_counts)],
+            textinfo='percent',
+            textposition='outside'
+        )])
+        fig_jer.update_layout(
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, font=dict(size=10)),
+            height=350,
+            margin=dict(t=20, b=80, l=20, r=20)
+        )
+        st.plotly_chart(fig_jer, use_container_width=True)
 
     with col2:
-        st.markdown("#### 2. Tipos de jerarquías y planeación")
-        jer_counts = df_filtrado['jerarquia'].value_counts()
+        st.markdown("#### 2b. Tipos de planeación")
         plan_counts = df_filtrado['planeacion'].value_counts()
         fig2 = crear_grafico_barras_dual(jer_counts, plan_counts, 'Jerarquía', 'Planeación')
         st.plotly_chart(fig2, use_container_width=True)
