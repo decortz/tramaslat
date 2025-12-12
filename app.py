@@ -476,11 +476,13 @@ def mostrar_mapas():
     datos_procesados = []
     for resp in respuestas:
         herramientas_str = str(resp.get('herramientas', ''))
+        herramientas_pagadas_str = str(resp.get('herramientas_pagadas', ''))
         ias_str = str(resp.get('ias', ''))
         ias_pagadas_str = str(resp.get('ias_pagadas', ''))
         comunidades_str = str(resp.get('comunidades', ''))
 
         num_herramientas = len([h for h in herramientas_str.split('|') if h]) if herramientas_str else 0
+        num_herramientas_pagadas = len([h for h in herramientas_pagadas_str.split('|') if h]) if herramientas_pagadas_str else 0
         num_ias = len([i for i in ias_str.split('|') if i and i != 'Ninguna']) if ias_str else 0
         num_ias_pagadas = len([i for i in ias_pagadas_str.split('|') if i]) if ias_pagadas_str else 0
         num_comunidades = len([c for c in comunidades_str.split('|') if c]) if comunidades_str else 0
@@ -495,6 +497,7 @@ def mostrar_mapas():
             'jerarquia': resp.get('jerarquia', ''),
             'planeacion': resp.get('planeacion', ''),
             'num_herramientas': num_herramientas,
+            'num_herramientas_pagadas': num_herramientas_pagadas,
             'num_ias': num_ias,
             'num_ias_pagadas': num_ias_pagadas,
             'num_comunidades': num_comunidades,
@@ -638,7 +641,7 @@ def mostrar_mapas():
     st.markdown("#### 3. Uso promedio de herramientas digitales por persona")
 
     prom_herramientas = df_filtrado['num_herramientas'].mean()
-    prom_herr_pagadas = df_filtrado['num_herramientas_pagadas'].mean() if 'num_herramientas_pagadas' in df_filtrado.columns else 0
+    prom_herr_pagadas = df_filtrado['num_herramientas_pagadas'].mean()
     prom_ias = df_filtrado['num_ias'].mean()
     prom_ias_pagadas = df_filtrado['num_ias_pagadas'].mean()
     prom_comunidades = df_filtrado['num_comunidades'].mean()
