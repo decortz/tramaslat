@@ -687,13 +687,13 @@ def mostrar_mapas():
     with col3a:
         st.markdown("#### 3a. Tipos de ecosistemas")
         eco_counts = df_filtrado['ecosistema'].value_counts()
-        # Colores verdes con alto contraste
-        colores_verde = ['#1b4332', '#2d6a4f', '#40916c', '#52b788', '#74c69d', '#95d5b2']
+        # Colores azules con alto contraste
+        colores_azul_eco = ['#03045e', '#0077b6', '#00b4d8', '#90e0ef', '#caf0f8']
         fig_eco = go.Figure(data=[go.Pie(
             labels=eco_counts.index.tolist(),
             values=eco_counts.values.tolist(),
             hole=0.3,
-            marker_colors=colores_verde[:len(eco_counts)],
+            marker_colors=colores_azul_eco[:len(eco_counts)],
             textinfo='percent',
             textposition='outside'
         )])
@@ -708,13 +708,13 @@ def mostrar_mapas():
     with col3b:
         st.markdown("#### 3b. Tipos de redes")
         redes_counts = df_filtrado['redes'].value_counts()
-        # Colores naranjas con alto contraste
-        colores_naranja = ['#9c4700', '#d65f00', '#f77f00', '#fcbf49', '#fcd779', '#ffeaad']
+        # Colores morados con alto contraste
+        colores_morado_redes = ['#4a0080', '#7b2cbf', '#c77dff', '#e0aaff', '#f3d5ff', '#fce4ff']
         fig_redes = go.Figure(data=[go.Pie(
             labels=redes_counts.index.tolist(),
             values=redes_counts.values.tolist(),
             hole=0.3,
-            marker_colors=colores_naranja[:len(redes_counts)],
+            marker_colors=colores_morado_redes[:len(redes_counts)],
             textinfo='percent',
             textposition='outside'
         )])
@@ -729,13 +729,13 @@ def mostrar_mapas():
     # 4. Tipos de liderazgo
     st.markdown("#### 4. Tipos de liderazgo")
     lider_counts = df_filtrado['liderazgo'].value_counts()
-    # Colores rojos/rosados con alto contraste
-    colores_rojo = ['#6a040f', '#9d0208', '#dc2f02', '#e85d04', '#f48c06', '#ffba08']
+    # Colores azules con alto contraste
+    colores_azul_lider = ['#03045e', '#0077b6', '#00b4d8', '#90e0ef', '#caf0f8']
     fig_lider = go.Figure(data=[go.Pie(
         labels=lider_counts.index.tolist(),
         values=lider_counts.values.tolist(),
         hole=0.3,
-        marker_colors=colores_rojo[:len(lider_counts)],
+        marker_colors=colores_azul_lider[:len(lider_counts)],
         textinfo='percent',
         textposition='outside'
     )])
