@@ -152,9 +152,9 @@ def conectar_google_sheets(mostrar_errores=True):
         return None
 
 HEADERS_SHEETS = [
-    'timestamp', 'num_organizaciones', 'num_proyectos', 'organizaciones_tipos',
-    'organizaciones_cargos', 'proyectos_nombres', 'proyectos_cargos', 'jerarquia',
-    'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'identidad',
+    'timestamp', 'num_organizaciones', 'num_proyectos', 'artista_independiente',
+    'organizaciones_tipos', 'organizaciones_cargos', 'proyectos_nombres', 'proyectos_cargos',
+    'jerarquia', 'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'identidad',
     'herramientas', 'herramientas_pagadas', 'ias', 'ias_pagadas', 'comunidades',
     'pais', 'ciudad', 'edad', 'nivel_academico', 'nombre', 'correo', 'telefono',
     'entrevista', 'convocatorias', 'tipo_org_score', 'nivel_formalizacion',
@@ -169,6 +169,7 @@ def guardar_respuesta_sheets(respuesta, max_reintentos=3):
         respuesta.get('demograficos', {}).get('timestamp', ''),
         respuesta.get('num_organizaciones', 0),
         respuesta.get('num_proyectos', 0),
+        respuesta.get('artista_independiente', ''),
         '|'.join([org.get('tipo', '') for org in respuesta.get('organizaciones', [])]),
         '|'.join([org.get('cargo', '') for org in respuesta.get('organizaciones', [])]),
         '|'.join([proy.get('nombre', '') for proy in respuesta.get('proyectos', [])]),
@@ -496,6 +497,10 @@ def mostrar_mapas():
             'nivel_digitalizacion': resp.get('nivel_digitalizacion', 0),
             'jerarquia': resp.get('jerarquia', ''),
             'planeacion': resp.get('planeacion', ''),
+            'ecosistema': resp.get('ecosistema', ''),
+            'redes': resp.get('redes', ''),
+            'liderazgo': resp.get('liderazgo', ''),
+            'artista_independiente': resp.get('artista_independiente', ''),
             'num_herramientas': num_herramientas,
             'num_herramientas_pagadas': num_herramientas_pagadas,
             'num_ias': num_ias,
@@ -532,6 +537,25 @@ def mostrar_mapas():
         niveles_disponibles = ['Todos'] + sorted([n for n in df_datos['nivel_academico'].unique().tolist() if n])
         filtro_nivel = st.selectbox("Nivel académico:", niveles_disponibles, key="f_nivel")
 
+    # Filtros de medición
+    st.markdown("### Filtros de Medición")
+    col5, col6, col7 = st.columns(3)
+
+    with col5:
+        # Rangos para nivel de digitalización
+        rangos_digitalizacion = ['Todos', 'Bajo (0-33)', 'Medio (34-66)', 'Alto (67-100)']
+        filtro_digitalizacion = st.selectbox("Nivel de Digitalización:", rangos_digitalizacion, key="f_digitalizacion")
+
+    with col6:
+        # Rangos para nivel de formalización
+        rangos_formalizacion = ['Todos', 'Bajo (0-33)', 'Medio (34-66)', 'Alto (67-100)']
+        filtro_formalizacion = st.selectbox("Nivel de Formalización:", rangos_formalizacion, key="f_formalizacion")
+
+    with col7:
+        # Tipo de artista independiente
+        tipos_artista = ['Todos'] + sorted([a for a in df_datos['artista_independiente'].unique().tolist() if a])
+        filtro_artista = st.selectbox("Tipo de Artista:", tipos_artista, key="f_artista")
+
     # Aplicar filtros
     filtros = {
         'pais': filtro_pais,
@@ -541,6 +565,26 @@ def mostrar_mapas():
     }
 
     df_filtrado = filtrar_datos(df_datos, filtros)
+
+    # Aplicar filtros de medición
+    if filtro_digitalizacion != 'Todos':
+        if filtro_digitalizacion == 'Bajo (0-33)':
+            df_filtrado = df_filtrado[df_filtrado['nivel_digitalizacion'] <= 33]
+        elif filtro_digitalizacion == 'Medio (34-66)':
+            df_filtrado = df_filtrado[(df_filtrado['nivel_digitalizacion'] > 33) & (df_filtrado['nivel_digitalizacion'] <= 66)]
+        elif filtro_digitalizacion == 'Alto (67-100)':
+            df_filtrado = df_filtrado[df_filtrado['nivel_digitalizacion'] > 66]
+
+    if filtro_formalizacion != 'Todos':
+        if filtro_formalizacion == 'Bajo (0-33)':
+            df_filtrado = df_filtrado[df_filtrado['nivel_formalizacion'] <= 33]
+        elif filtro_formalizacion == 'Medio (34-66)':
+            df_filtrado = df_filtrado[(df_filtrado['nivel_formalizacion'] > 33) & (df_filtrado['nivel_formalizacion'] <= 66)]
+        elif filtro_formalizacion == 'Alto (67-100)':
+            df_filtrado = df_filtrado[df_filtrado['nivel_formalizacion'] > 66]
+
+    if filtro_artista != 'Todos':
+        df_filtrado = df_filtrado[df_filtrado['artista_independiente'] == filtro_artista]
 
     st.info(f"📊 Mostrando {len(df_filtrado)} de {len(df_datos)} respuestas")
 
@@ -637,8 +681,74 @@ def mostrar_mapas():
         )
         st.plotly_chart(fig_plan, use_container_width=True)
 
-    # 3. Promedios de herramientas digitales
-    st.markdown("#### 3. Uso promedio de herramientas digitales por persona")
+    # 3. Gráficas de ecosistemas y redes
+    col3a, col3b = st.columns(2)
+
+    with col3a:
+        st.markdown("#### 3a. Tipos de ecosistemas")
+        eco_counts = df_filtrado['ecosistema'].value_counts()
+        # Colores verdes con alto contraste
+        colores_verde = ['#1b4332', '#2d6a4f', '#40916c', '#52b788', '#74c69d', '#95d5b2']
+        fig_eco = go.Figure(data=[go.Pie(
+            labels=eco_counts.index.tolist(),
+            values=eco_counts.values.tolist(),
+            hole=0.3,
+            marker_colors=colores_verde[:len(eco_counts)],
+            textinfo='percent',
+            textposition='outside'
+        )])
+        fig_eco.update_layout(
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, font=dict(size=10)),
+            height=350,
+            margin=dict(t=20, b=80, l=20, r=20)
+        )
+        st.plotly_chart(fig_eco, use_container_width=True)
+
+    with col3b:
+        st.markdown("#### 3b. Tipos de redes")
+        redes_counts = df_filtrado['redes'].value_counts()
+        # Colores naranjas con alto contraste
+        colores_naranja = ['#9c4700', '#d65f00', '#f77f00', '#fcbf49', '#fcd779', '#ffeaad']
+        fig_redes = go.Figure(data=[go.Pie(
+            labels=redes_counts.index.tolist(),
+            values=redes_counts.values.tolist(),
+            hole=0.3,
+            marker_colors=colores_naranja[:len(redes_counts)],
+            textinfo='percent',
+            textposition='outside'
+        )])
+        fig_redes.update_layout(
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5, font=dict(size=10)),
+            height=350,
+            margin=dict(t=20, b=80, l=20, r=20)
+        )
+        st.plotly_chart(fig_redes, use_container_width=True)
+
+    # 4. Tipos de liderazgo
+    st.markdown("#### 4. Tipos de liderazgo")
+    lider_counts = df_filtrado['liderazgo'].value_counts()
+    # Colores rojos/rosados con alto contraste
+    colores_rojo = ['#6a040f', '#9d0208', '#dc2f02', '#e85d04', '#f48c06', '#ffba08']
+    fig_lider = go.Figure(data=[go.Pie(
+        labels=lider_counts.index.tolist(),
+        values=lider_counts.values.tolist(),
+        hole=0.3,
+        marker_colors=colores_rojo[:len(lider_counts)],
+        textinfo='percent',
+        textposition='outside'
+    )])
+    fig_lider.update_layout(
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5, font=dict(size=10)),
+        height=400,
+        margin=dict(t=20, b=80, l=20, r=20)
+    )
+    st.plotly_chart(fig_lider, use_container_width=True)
+
+    # 5. Promedios de herramientas digitales
+    st.markdown("#### 5. Uso promedio de herramientas digitales por persona")
 
     prom_herramientas = df_filtrado['num_herramientas'].mean()
     prom_herr_pagadas = df_filtrado['num_herramientas_pagadas'].mean()
@@ -800,6 +910,19 @@ def pagina_cantidad():
     with col2:
         num_proy = st.number_input("Proyectos:", min_value=0, max_value=20, value=0, key="num_proy")
 
+    st.markdown("### ¿Te reconoces como artista independiente?")
+    artista_independiente = st.selectbox(
+        "Selecciona una opción:",
+        [
+            "Sí totalmente",
+            "Sí pero quisiera estar en otro segmento",
+            "Medianamente (trabajo con empresas tradicionales del sector)",
+            "Medianamente (participo activamente con organizaciones públicas o gobierno)",
+            "No porque trabajo principalmente con empresas de producción masiva"
+        ],
+        key="artista_independiente"
+    )
+
     orgs_data = []
     if num_org > 0:
         st.markdown("### Organizaciones")
@@ -842,6 +965,7 @@ def pagina_cantidad():
                 st.session_state.temp_data.update({
                     'num_organizaciones': num_org,
                     'num_proyectos': num_proy,
+                    'artista_independiente': artista_independiente,
                     'organizaciones': orgs_data,
                     'proyectos': proyectos_data
                 })
