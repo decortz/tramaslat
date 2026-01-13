@@ -1161,7 +1161,7 @@ def pagina_demograficos():
     <a href="https://www.youtube.com/watch?v=0x9rbnCRHR0&list=PLlmVVBH4XMZCIh1DXFh3XmYZqkLbiToyH" target="_blank" style="text-decoration: none;">
         <button style="width: 40%; background-color: #A870B0; color: #62CBE6; font-family: 'Roboto', sans-serif, margin-left;
                        font-weight: 700; border-radius: 10px; padding: 0.75rem; border: none; font-size: 1rem; cursor: pointer;">
-            👩🏽‍🎤¡Mira la serie web "Máscaras Ciberpiratas" acá!
+            🤖¡Mira la serie web "Máscaras Ciberpiratas" acá!
         </button>
     </a>
     <br>
