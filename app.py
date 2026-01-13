@@ -1154,9 +1154,9 @@ def pagina_demograficos():
     nombre = st.text_input("Nombre")
     correo = st.text_input("Correo electrónico")
     telefono = st.text_input("Teléfono")
-    entrevista = st.radio("¿Te contactamos para entrevistas?", ["No", "Sí"])
+    entrevista = st.radio("¿Te gustaría que te contactemos para entrevistas de esta investigación?", ["No", "Sí"])
     convocatorias = st.multiselect("¿Te interesa participar en?", ["Talleres de autogestión", "Ferias de arte"])
-    mascaras = st.radio("¿Te gustaría participar en la serie web "Máscaras Ciberpiratas"?, Si no la has visto, te invitamos a verla en el vínculo de abajo", ["Si, ¿cuánto cuesta?", "No"])
+    mascaras = st.radio("""¿Te gustaría participar en la serie web "Máscaras Ciberpiratas"?, Si no la has visto, te invitamos a verla en el vínculo de abajo""", ["Si, ¿cuánto cuesta?", "No"])
     st.markdown("""
     <a href="https://elchorro.com.co/contactanos/" target="_blank" style="text-decoration: none;">
         <button style="width: 100%; background-color: #A870B0; color: #62CBE6; font-family: 'Roboto', sans-serif;
