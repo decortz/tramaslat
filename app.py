@@ -1163,7 +1163,9 @@ def pagina_demograficos():
                        font-weight: 700; border-radius: 10px; padding: 0.75rem; border: none; font-size: 1rem; cursor: pointer;">
             ¡Mira la serie web "Máscaras Ciberpiratas" acá!
         </button>
-    </a><br>
+        
+    </a>
+    <br>
     """, unsafe_allow_html=True)
      
     col_prev, col_next = st.columns([1, 1])
