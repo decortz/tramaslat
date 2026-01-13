@@ -194,6 +194,7 @@ def guardar_respuesta_sheets(respuesta, max_reintentos=3):
         respuesta.get('demograficos', {}).get('correo', ''),
         respuesta.get('demograficos', {}).get('telefono', ''),
         respuesta.get('demograficos', {}).get('entrevista', ''),
+        respuesta.get('demograficos', {}).get('mascaras', ''),
         '|'.join(respuesta.get('demograficos', {}).get('convocatorias', [])),
         calcular_tipo_org_score_total(respuesta.get('organizaciones', [])),
         calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {})),
@@ -1192,6 +1193,7 @@ def pagina_demograficos():
                         'telefono': telefono,
                         'entrevista': entrevista,
                         'convocatorias': convocatorias,
+                        'mascaras': mascaras,
                         'timestamp': datetime.now().isoformat()
                     }
                 }
