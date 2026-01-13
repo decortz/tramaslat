@@ -194,8 +194,8 @@ def guardar_respuesta_sheets(respuesta, max_reintentos=3):
         respuesta.get('demograficos', {}).get('correo', ''),
         respuesta.get('demograficos', {}).get('telefono', ''),
         respuesta.get('demograficos', {}).get('entrevista', ''),
-        respuesta.get('demograficos', {}).get('mascaras', ''),
         '|'.join(respuesta.get('demograficos', {}).get('convocatorias', [])),
+        respuesta.get('demograficos', {}).get('mascaras', ''),
         calcular_tipo_org_score_total(respuesta.get('organizaciones', [])),
         calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {})),
         calcular_nivel_digitalizacion(respuesta.get('herramientas_digitales', {}))
