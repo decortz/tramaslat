@@ -1163,11 +1163,10 @@ def pagina_demograficos():
                        font-weight: 700; border-radius: 10px; padding: 0.75rem; border: none; font-size: 1rem; cursor: pointer;">
             ¡Mira la serie web "Máscaras Ciberpiratas" acá!
         </button>
-        
     </a>
     <br>
-    """, unsafe_allow_html=True)
-     
+    """, unsafe_allow_html=True)    
+    st.markdown(" ")
     col_prev, col_next = st.columns([1, 1])
     with col_prev:
         if st.button("⬅️ Regresar", use_container_width=True):
