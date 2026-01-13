@@ -1158,10 +1158,10 @@ def pagina_demograficos():
     convocatorias = st.multiselect("¿Te interesa participar en?", ["Talleres de autogestión", "Ferias de arte"])
     mascaras = st.radio("""¿Te gustaría participar en la serie web "Máscaras Ciberpiratas"?, Si no la has visto, te invitamos a verla en el vínculo de abajo""", ["Si, ¿cuánto cuesta?", "No"])
     st.markdown("""
-    <a href="https://elchorro.com.co/contactanos/" target="_blank" margin-left: "auto" style="text-decoration: none;">
-        <button style="width: 40%; background-color: #A870B0; color: #62CBE6; font-family: 'Roboto', sans-serif;
+    <a href="https://www.youtube.com/watch?v=0x9rbnCRHR0&list=PLlmVVBH4XMZCIh1DXFh3XmYZqkLbiToyH" target="_blank" style="text-decoration: none;">
+        <button style="width: 40%; background-color: #A870B0; color: #62CBE6; font-family: 'Roboto', sans-serif, margin-left;
                        font-weight: 700; border-radius: 10px; padding: 0.75rem; border: none; font-size: 1rem; cursor: pointer;">
-            ¡Máscaras Ciberpiratas acá!
+            ¡Mira la serie web "Máscaras Ciberpiratas" acá!
         </button>
     </a><br>
     """, unsafe_allow_html=True)
