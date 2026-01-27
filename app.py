@@ -478,7 +478,7 @@ def crear_scatter_dual(df_filtrado):
         height=600,
         hovermode='closest',
         plot_bgcolor='white',
-        xaxis=dict(gridcolor='#f0f0f0', range=[-20, 20]),
+        xaxis=dict(gridcolor='#f0f0f0', range=[-10, 10]),
         yaxis=dict(gridcolor='#f0f0f0', range=[-5, 105])
     )
 
@@ -641,9 +641,9 @@ def mostrar_mapas():
     st.markdown("""
     <div style="background-color: #f0f0f0; padding: 0.8rem; border-radius: 8px; margin-bottom: 1rem;">
         En este mapa medimos, por persona, qué tan formalizadas son sus relaciones
-        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 100%; background-color: #5D80B5; margin: 0 3px;"></span>
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: #5D80B5; margin: 0 3px;"></span>
         y su nivel de digitalización
-        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 100%; background-color: #A870B0; margin: 0 3px;"></span>
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: #A870B0; margin: 0 3px;"></span>
     </div>
     """, unsafe_allow_html=True)
 
