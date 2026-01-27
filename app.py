@@ -999,16 +999,8 @@ def pagina_herramientas_admin():
          "No reconozco participación con nadie más"]
     )
 
-    redes = st.selectbox(
-        "4. ¿Tienes una red de trabajo consolidada?",
-        ["Participo activamente con organizaciones del sector",
-         "Reconozco organizaciones pero no me reconocen",
-         "Estoy consolidando lazos",
-         "No participo con nadie"]
-    )
-
     funciones = st.selectbox(
-        "5. ¿Cómo son tus funciones y labores?",
+        "4. ¿Cómo son tus funciones y labores?",
         ["Roles claramente identificados y bajo contrato",
          "Roles identificados y formalizados",
          "Roles informales pero identificables",
@@ -1017,7 +1009,7 @@ def pagina_herramientas_admin():
     )
 
     liderazgo = st.selectbox(
-        "6. ¿Cómo es el liderazgo en tu forma de trabajo?",
+        "5. ¿Cómo es el liderazgo en tu forma de trabajo?",
         ["Líderes específicos para cada área",
          "Líderes específicos según el proyecto",
          "Liderazgo compartido por conocimiento",
@@ -1025,12 +1017,20 @@ def pagina_herramientas_admin():
     )
 
     identidad = st.selectbox(
-        "7. ¿Tienes una identidad definida?",
+        "6. ¿Tienes una identidad definida?",
         ["Marca con manual definido",
          "Marca definida, identidad informal",
          "Una marca más bien fluida",
          "Llevo una marca por línea de trabajo",
          "Sin identidad definida"]
+    )
+    
+        redes = st.selectbox(
+        "7. ¿Tienes una red de trabajo consolidada?",
+        ["Participo activamente con organizaciones del sector",
+         "Reconozco organizaciones pero no me reconocen",
+         "Estoy consolidando lazos",
+         "No participo con nadie"]
     )
 
     col_prev, col_next = st.columns([1, 1])
