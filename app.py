@@ -73,9 +73,8 @@ def calcular_nivel_digitalizacion(respuesta):
     multiplicadores_ias = {
         "Totalmente fundamentales": 1.0,
         "Fundamentales para algunas tareas": 0.75,
-        "Me aportan muy poco": 0.5,
-        "Nada no las uso tanto": 0.25,
-        "No sé utilizarlas muy bien quisiera manejarlas mejor": 0.5
+        "Me aportan muy poco no las uso tanto": 0.5,
+        "No sé utilizarlas muy bien quisiera manejarlas mejor": 0.25
     }
     multiplicadores_comunidades = {
         "Totalmente fundamentales participo de forma activa": 1.0,
@@ -114,11 +113,11 @@ def calcular_nivel_digitalizacion(respuesta):
     return round(min(puntaje, 100))
 
 def calcular_tipo_org_score_total(organizaciones):
-    """Calcula el score total de tipo de organización"""
+    """Calcula el score total de tipo de organización (limitado a -10 a +10)"""
     total = 0
     for org in organizaciones:
         total += calcular_tipo_organizacion_score(org.get('tipo', ''))
-    return total
+    return max(-10, min(total, 10))
 
 # ==================== GOOGLE SHEETS ====================
 
@@ -535,7 +534,7 @@ def mostrar_mapas():
             'num_organizaciones': resp.get('num_organizaciones', 0),
             'num_proyectos': resp.get('num_proyectos', 0),
             'total_entidades': resp.get('num_organizaciones', 0) + resp.get('num_proyectos', 0),
-            'tipo_org_score': float(str(resp.get('tipo_org_score', 0) or 0).replace(',', '.')),
+            'tipo_org_score': max(-10, min(float(str(resp.get('tipo_org_score', 0) or 0).replace(',', '.')), 10)),
             'nivel_formalizacion': min(float(str(resp.get('nivel_formalizacion', 0) or 0).replace(',', '.')), 100),
             'nivel_digitalizacion': min(float(str(resp.get('nivel_digitalizacion', 0) or 0).replace(',', '.')), 100),
             'jerarquia': resp.get('jerarquia', ''),
@@ -1161,8 +1160,7 @@ def pagina_herramientas_digitales():
         "**6. ¿Estas herramientas son importantes para tu trabajo?**",
         ["Totalmente fundamentales",
          "Fundamentales para algunas tareas",
-         "Me aportan muy poco",
-         "Nada no las uso tanto",
+         "Me aportan muy poco no las uso tanto",
          "No sé utilizarlas muy bien quisiera manejarlas mejor"],
         key="importancia_ias"
     )
