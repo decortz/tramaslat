@@ -478,7 +478,7 @@ def crear_scatter_dual(df_filtrado):
         height=600,
         hovermode='closest',
         plot_bgcolor='white',
-        xaxis=dict(gridcolor='#f0f0f0', range=[-10, 10]),
+        xaxis=dict(gridcolor='#f0f0f0', range=[-12, 12]),
         yaxis=dict(gridcolor='#f0f0f0', range=[-5, 105])
     )
 
