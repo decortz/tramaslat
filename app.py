@@ -111,7 +111,7 @@ def calcular_nivel_digitalizacion(respuesta):
     num_comunidades = respuesta.get('num_comunidades', 0)
     puntaje += min(num_comunidades * 3, 20) * mult_com
 
-    return min(puntaje, 100)
+    return round(min(puntaje, 100))
 
 def calcular_tipo_org_score_total(organizaciones):
     """Calcula el score total de tipo de organización"""
@@ -535,9 +535,9 @@ def mostrar_mapas():
             'num_organizaciones': resp.get('num_organizaciones', 0),
             'num_proyectos': resp.get('num_proyectos', 0),
             'total_entidades': resp.get('num_organizaciones', 0) + resp.get('num_proyectos', 0),
-            'tipo_org_score': resp.get('tipo_org_score', 0),
-            'nivel_formalizacion': resp.get('nivel_formalizacion', 0),
-            'nivel_digitalizacion': resp.get('nivel_digitalizacion', 0),
+            'tipo_org_score': float(str(resp.get('tipo_org_score', 0) or 0).replace(',', '.')),
+            'nivel_formalizacion': min(float(str(resp.get('nivel_formalizacion', 0) or 0).replace(',', '.')), 100),
+            'nivel_digitalizacion': min(float(str(resp.get('nivel_digitalizacion', 0) or 0).replace(',', '.')), 100),
             'jerarquia': resp.get('jerarquia', ''),
             'planeacion': resp.get('planeacion', ''),
             'ecosistema': resp.get('ecosistema', ''),
