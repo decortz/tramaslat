@@ -63,18 +63,53 @@ def calcular_nivel_formalizacion(respuesta):
     return puntaje
 
 def calcular_nivel_digitalizacion(respuesta):
+    # Multiplicadores de importancia
+    multiplicadores_herramientas = {
+        "Totalmente fundamentales": 1.0,
+        "Fundamentales para algunas tareas": 0.75,
+        "Muy poco fundamentales": 0.5,
+        "Nada no las uso tanto": 0.25
+    }
+    multiplicadores_ias = {
+        "Totalmente fundamentales": 1.0,
+        "Fundamentales para algunas tareas": 0.75,
+        "Me aportan muy poco": 0.5,
+        "Nada no las uso tanto": 0.25,
+        "No sé utilizarlas muy bien quisiera manejarlas mejor": 0.5
+    }
+    multiplicadores_comunidades = {
+        "Totalmente fundamentales participo de forma activa": 1.0,
+        "Fundamentales en algunos casos": 0.75,
+        "Muy poco fundamentales no participo casi nunca": 0.5,
+        "No las uso solo estoy inscrito pero no participo": 0.25
+    }
+
+    # Obtener multiplicadores según respuestas
+    mult_herr = multiplicadores_herramientas.get(respuesta.get('importancia_herramientas', ''), 1.0)
+    mult_ias = multiplicadores_ias.get(respuesta.get('importancia_ias', ''), 1.0)
+    mult_com = multiplicadores_comunidades.get(respuesta.get('importancia_comunidades', ''), 1.0)
+
     puntaje = 0
+
+    # Herramientas utilizadas: 30 pts máx
     num_herramientas = respuesta.get('num_herramientas', 0)
-    puntaje += min(num_herramientas * 5, 40)
+    puntaje += min(num_herramientas * 3, 30) * mult_herr
 
+    # Herramientas pagadas: 10 pts máx
+    num_herramientas_pagadas = respuesta.get('num_herramientas_pagadas', 0)
+    puntaje += min(num_herramientas_pagadas * 2, 10) * mult_herr
+
+    # IAs utilizadas: 30 pts máx
     num_ias = respuesta.get('num_ias', 0)
-    puntaje += min(num_ias * 5, 30)
+    puntaje += min(num_ias * 4, 30) * mult_ias
 
+    # IAs pagadas: 10 pts máx
     num_ias_pagadas = respuesta.get('num_ias_pagadas', 0)
-    puntaje += min(num_ias_pagadas * 5, 15)
+    puntaje += min(num_ias_pagadas * 2, 10) * mult_ias
 
+    # Comunidades: 20 pts máx
     num_comunidades = respuesta.get('num_comunidades', 0)
-    puntaje += min(num_comunidades * 3, 15)
+    puntaje += min(num_comunidades * 3, 20) * mult_com
 
     return min(puntaje, 100)
 
@@ -1166,10 +1201,11 @@ def pagina_herramientas_digitales():
                 'importancia_ias': importancia_ias,
                 'comunidades': comunidades,
                 'importancia_comunidades': importancia_comunidades,
-                'num_herramientas': len(herramientas),
+                'num_herramientas': len([h for h in herramientas if h != "Ninguna"]),
+                'num_herramientas_pagadas': len(herramientas_pagadas),
                 'num_ias': len([ia for ia in ias if ia != "Ninguna"]),
                 'num_ias_pagadas': len(ias_pagadas),
-                'num_comunidades': len(comunidades)
+                'num_comunidades': len([c for c in comunidades if c != "Ninguna"])
             }
             st.session_state.encuesta_page = 4
             st.rerun()
