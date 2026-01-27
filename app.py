@@ -156,7 +156,8 @@ HEADERS_SHEETS = [
     'timestamp', 'num_organizaciones', 'num_proyectos', 'artista_independiente',
     'organizaciones_tipos', 'organizaciones_cargos', 'proyectos_nombres', 'proyectos_cargos',
     'jerarquia', 'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'liderazgo_propio',
-    'identidad', 'importancia_formalidad', 'herramientas', 'herramientas_pagadas', 'ias', 'ias_pagadas', 'comunidades',
+    'identidad', 'importancia_formalidad', 'herramientas', 'herramientas_pagadas', 'importancia_herramientas',
+    'ias', 'ias_pagadas', 'importancia_ias', 'comunidades', 'importancia_comunidades',
     'pais', 'ciudad', 'edad', 'nivel_academico', 'nombre', 'correo', 'telefono',
     'entrevista', 'convocatorias', 'tipo_org_score', 'nivel_formalizacion',
     'nivel_digitalizacion'
@@ -186,9 +187,12 @@ def guardar_respuesta_sheets(respuesta, max_reintentos=3):
         respuesta.get('herramientas_admin', {}).get('importancia_formalidad', ''),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas', [])),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas_pagadas', [])),
+        respuesta.get('herramientas_digitales', {}).get('importancia_herramientas', ''),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('ias', [])),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('ias_pagadas', [])),
+        respuesta.get('herramientas_digitales', {}).get('importancia_ias', ''),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('comunidades', [])),
+        respuesta.get('herramientas_digitales', {}).get('importancia_comunidades', ''),
         respuesta.get('demograficos', {}).get('pais', ''),
         respuesta.get('demograficos', {}).get('ciudad', ''),
         respuesta.get('demograficos', {}).get('edad', ''),
@@ -1093,7 +1097,16 @@ def pagina_herramientas_digitales():
     else:
         herramientas_pagadas = []
 
-    st.markdown("**3. ¿Qué inteligencias artificiales utilizas?**")
+    importancia_herramientas = st.selectbox(
+        "**3. ¿Estas herramientas son importantes para tu trabajo?**",
+        ["Totalmente fundamentales",
+         "Fundamentales para algunas tareas",
+         "Muy poco fundamentales",
+         "Nada no las uso tanto"],
+        key="importancia_herramientas"
+    )
+
+    st.markdown("**4. ¿Qué inteligencias artificiales utilizas?**")
     ias = st.multiselect(
         "Selecciona:",
         ["Generador de texto (ChatGPT, Claude, etc.)",
@@ -1104,18 +1117,37 @@ def pagina_herramientas_digitales():
     )
 
     if ias and "Ninguna" not in ias:
-        st.markdown("**4. ¿Cuáles pagas?**")
+        st.markdown("**5. ¿Cuáles pagas?**")
         ias_pagadas = st.multiselect("Selecciona:", [ia for ia in ias if ia != "Ninguna"], key="ias_pag")
     else:
         ias_pagadas = []
 
-    st.markdown("**5. ¿Perteneces a alguna comunidad en línea?**")
+    importancia_ias = st.selectbox(
+        "**6. ¿Estas herramientas son importantes para tu trabajo?**",
+        ["Totalmente fundamentales",
+         "Fundamentales para algunas tareas",
+         "Me aportan muy poco",
+         "Nada no las uso tanto",
+         "No sé utilizarlas muy bien quisiera manejarlas mejor"],
+        key="importancia_ias"
+    )
+
+    st.markdown("**7. ¿Perteneces a alguna comunidad en línea?**")
     comunidades = st.multiselect(
         "Selecciona:",
         ["Grupos de WhatsApp/Telegram", "Grupos de difusión",
          "Grupos de redes sociales", "Comunidades especializadas en línea",
          "Comunidades híbridas", "Otras", "Ninguna"],
         key="comunidades"
+    )
+
+    importancia_comunidades = st.selectbox(
+        "**8. ¿Estas comunidades son importantes para tu trabajo?**",
+        ["Totalmente fundamentales participo de forma activa",
+         "Fundamentales en algunos casos",
+         "Muy poco fundamentales no participo casi nunca",
+         "No las uso solo estoy inscrito pero no participo"],
+        key="importancia_comunidades"
     )
 
     col_prev, col_next = st.columns([1, 1])
@@ -1128,9 +1160,12 @@ def pagina_herramientas_digitales():
             st.session_state.temp_data['herramientas_digitales'] = {
                 'herramientas': herramientas,
                 'herramientas_pagadas': herramientas_pagadas,
+                'importancia_herramientas': importancia_herramientas,
                 'ias': ias,
                 'ias_pagadas': ias_pagadas,
+                'importancia_ias': importancia_ias,
                 'comunidades': comunidades,
+                'importancia_comunidades': importancia_comunidades,
                 'num_herramientas': len(herramientas),
                 'num_ias': len([ia for ia in ias if ia != "Ninguna"]),
                 'num_ias_pagadas': len(ias_pagadas),
