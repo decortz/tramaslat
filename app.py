@@ -1025,7 +1025,7 @@ def pagina_herramientas_admin():
          "Sin identidad definida"]
     )
     
-        redes = st.selectbox(
+    redes = st.selectbox(
         "7. ¿Tienes una red de trabajo consolidada?",
         ["Participo activamente con organizaciones del sector",
          "Reconozco organizaciones pero no me reconocen",
