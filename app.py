@@ -1009,7 +1009,7 @@ def pagina_herramientas_admin():
     )
 
     liderazgo = st.selectbox(
-        "5. ¿Cómo es el liderazgo en tu forma de trabajo?",
+        "5. ¿Cómo es el liderazgo de otras personas en tus espacios de trabajo?",
         ["Líderes específicos para cada área",
          "Líderes específicos según el proyecto",
          "Liderazgo compartido por conocimiento",
