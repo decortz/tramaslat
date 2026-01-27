@@ -198,6 +198,7 @@ def guardar_respuesta_sheets(respuesta, max_reintentos=3):
         respuesta.get('demograficos', {}).get('telefono', ''),
         respuesta.get('demograficos', {}).get('entrevista', ''),
         '|'.join(respuesta.get('demograficos', {}).get('convocatorias', [])),
+        respuesta.get('demograficos', {}).get('mascaras', ''),
         calcular_tipo_org_score_total(respuesta.get('organizaciones', [])),
         calcular_nivel_formalizacion(respuesta.get('herramientas_admin', {})),
         calcular_nivel_digitalizacion(respuesta.get('herramientas_digitales', {}))
@@ -905,14 +906,6 @@ def pagina_cantidad():
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### ¿A cuántas organizaciones perteneces formal o informalmente y en cuántos proyectos estás participando?")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        num_org = st.number_input("Organizaciones:", min_value=0, max_value=20, value=0, key="num_org")
-    with col2:
-        num_proy = st.number_input("Proyectos:", min_value=0, max_value=20, value=0, key="num_proy")
-
     st.markdown("### ¿Te reconoces como artista independiente?")
     artista_independiente = st.selectbox(
         "Selecciona una opción:",
@@ -925,6 +918,14 @@ def pagina_cantidad():
         ],
         key="artista_independiente"
     )
+
+    st.markdown("### ¿A cuántas organizaciones perteneces formal o informalmente y en cuántos proyectos estás participando?")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        num_org = st.number_input("Organizaciones:", min_value=0, max_value=20, value=0, key="num_org")
+    with col2:
+        num_proy = st.number_input("Proyectos:", min_value=0, max_value=20, value=0, key="num_proy")
 
     orgs_data = []
     if num_org > 0:
@@ -1002,16 +1003,8 @@ def pagina_herramientas_admin():
          "No reconozco participación con nadie más"]
     )
 
-    redes = st.selectbox(
-        "4. ¿Tienes una red de trabajo consolidada?",
-        ["Participo activamente con organizaciones del sector",
-         "Reconozco organizaciones pero no me reconocen",
-         "Estoy consolidando lazos",
-         "No participo con nadie"]
-    )
-
     funciones = st.selectbox(
-        "5. ¿Cómo son tus funciones y labores?",
+        "4. ¿Cómo son tus funciones y labores?",
         ["Roles claramente identificados y bajo contrato",
          "Roles identificados y formalizados",
          "Roles informales pero identificables",
@@ -1020,7 +1013,7 @@ def pagina_herramientas_admin():
     )
 
     liderazgo = st.selectbox(
-        "6. ¿Cómo es el liderazgo en tu forma de trabajo?",
+        "5. ¿Cómo es el liderazgo de otras personas en tus espacios de trabajo?",
         ["Líderes específicos para cada área",
          "Líderes específicos según el proyecto",
          "Liderazgo compartido por conocimiento",
@@ -1028,7 +1021,7 @@ def pagina_herramientas_admin():
     )
 
     liderazgo_propio = st.selectbox(
-        "7. ¿Cómo es tu tipo de liderazgo?",
+        "6. ¿Cómo es tu tipo de liderazgo?",
         ["Es específico para un área o departamento",
          "Lidero todos mis proyectos",
          "Lidero algunos proyectos",
@@ -1037,22 +1030,30 @@ def pagina_herramientas_admin():
     )
 
     identidad = st.selectbox(
-        "8. ¿Tienes una identidad definida?",
+        "7. ¿Tienes una identidad definida?",
         ["Marca con manual definido",
          "Marca definida, identidad informal",
          "Una marca más bien fluida",
          "Llevo una marca por línea de trabajo",
          "Sin identidad definida"]
     )
-
+    
     importancia_formalidad = st.selectbox(
-        "9. ¿Qué tan importante es la formalidad en tus relaciones laborales para lograr un buen desempeño de tus proyectos?",
+        "8. ¿Qué tan importante es la formalidad en tus relaciones laborales para lograr un buen desempeño de tus proyectos?",
         ["Muy importantes",
          "Mucho pero a veces dificulta relaciones",
          "No tanto prefiero relaciones más fluidas",
          "No es nada importante"]
     )
 
+    redes = st.selectbox(
+        "9. ¿Tienes una red de trabajo consolidada?",
+        ["Participo activamente con organizaciones del sector",
+         "Reconozco organizaciones pero no me reconocen",
+         "Estoy consolidando lazos",
+         "No participo con nadie"]
+    )
+    
     col_prev, col_next = st.columns([1, 1])
     with col_prev:
         if st.button("⬅️ Regresar", use_container_width=True):
@@ -1177,9 +1178,19 @@ def pagina_demograficos():
     nombre = st.text_input("Nombre")
     correo = st.text_input("Correo electrónico")
     telefono = st.text_input("Teléfono")
-    entrevista = st.radio("¿Te contactamos para entrevistas?", ["No", "Sí"])
+    entrevista = st.radio("¿Te gustaría que te contactemos para entrevistas de esta investigación?", ["No", "Sí"])
     convocatorias = st.multiselect("¿Te interesa participar en?", ["Talleres de autogestión", "Ferias de arte"])
-
+    mascaras = st.radio("""¿Te gustaría participar en la serie web "Máscaras Ciberpiratas"?, Si no la has visto, te invitamos a verla en el vínculo de abajo""", ["Si, ¿cuánto cuesta?", "No"])
+    st.markdown("""
+    <a href="https://www.youtube.com/watch?v=0x9rbnCRHR0&list=PLlmVVBH4XMZCIh1DXFh3XmYZqkLbiToyH" target="_blank" style="text-decoration: none;">
+        <button style="width: 40%; background-color: #A870B0; color: #62CBE6; font-family: 'Roboto', sans-serif, margin-left;
+                       font-weight: 700; border-radius: 10px; padding: 0.75rem; border: none; font-size: 1rem; cursor: pointer;">
+            🤖¡Mira la serie web "Máscaras Ciberpiratas" acá!
+        </button>
+    </a>
+    <br>
+    """, unsafe_allow_html=True)    
+    st.markdown(" ")
     col_prev, col_next = st.columns([1, 1])
     with col_prev:
         if st.button("⬅️ Regresar", use_container_width=True):
@@ -1205,6 +1216,7 @@ def pagina_demograficos():
                         'telefono': telefono,
                         'entrevista': entrevista,
                         'convocatorias': convocatorias,
+                        'mascaras': mascaras,
                         'timestamp': datetime.now().isoformat()
                     }
                 }
