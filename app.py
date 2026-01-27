@@ -903,14 +903,6 @@ def pagina_cantidad():
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### ¿A cuántas organizaciones perteneces formal o informalmente y en cuántos proyectos estás participando?")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        num_org = st.number_input("Organizaciones:", min_value=0, max_value=20, value=0, key="num_org")
-    with col2:
-        num_proy = st.number_input("Proyectos:", min_value=0, max_value=20, value=0, key="num_proy")
-
     st.markdown("### ¿Te reconoces como artista independiente?")
     artista_independiente = st.selectbox(
         "Selecciona una opción:",
@@ -923,6 +915,14 @@ def pagina_cantidad():
         ],
         key="artista_independiente"
     )
+
+    st.markdown("### ¿A cuántas organizaciones perteneces formal o informalmente y en cuántos proyectos estás participando?")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        num_org = st.number_input("Organizaciones:", min_value=0, max_value=20, value=0, key="num_org")
+    with col2:
+        num_proy = st.number_input("Proyectos:", min_value=0, max_value=20, value=0, key="num_proy")
 
     orgs_data = []
     if num_org > 0:
