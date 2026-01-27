@@ -37,6 +37,7 @@ def calcular_nivel_formalizacion(respuesta):
         'Tengo un plan estratégico que se comunica de manera oficial': 20,
         'Tengo un plan estratégico pero no lo comunico': 15,
         'Participo en el desarrollo del plan estratégico en colectivo': 10,
+        'Planeación intuitiva': 5,
         'No tengo ninguna planeación': 0
     }
     puntaje += planeacion_scores.get(respuesta.get('planeacion', ''), 0)
@@ -154,8 +155,8 @@ def conectar_google_sheets(mostrar_errores=True):
 HEADERS_SHEETS = [
     'timestamp', 'num_organizaciones', 'num_proyectos', 'artista_independiente',
     'organizaciones_tipos', 'organizaciones_cargos', 'proyectos_nombres', 'proyectos_cargos',
-    'jerarquia', 'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'identidad',
-    'herramientas', 'herramientas_pagadas', 'ias', 'ias_pagadas', 'comunidades',
+    'jerarquia', 'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'liderazgo_propio',
+    'identidad', 'importancia_formalidad', 'herramientas', 'herramientas_pagadas', 'ias', 'ias_pagadas', 'comunidades',
     'pais', 'ciudad', 'edad', 'nivel_academico', 'nombre', 'correo', 'telefono',
     'entrevista', 'convocatorias', 'tipo_org_score', 'nivel_formalizacion',
     'nivel_digitalizacion'
@@ -180,7 +181,9 @@ def guardar_respuesta_sheets(respuesta, max_reintentos=3):
         respuesta.get('herramientas_admin', {}).get('redes', ''),
         respuesta.get('herramientas_admin', {}).get('funciones', ''),
         respuesta.get('herramientas_admin', {}).get('liderazgo', ''),
+        respuesta.get('herramientas_admin', {}).get('liderazgo_propio', ''),
         respuesta.get('herramientas_admin', {}).get('identidad', ''),
+        respuesta.get('herramientas_admin', {}).get('importancia_formalidad', ''),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas', [])),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas_pagadas', [])),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('ias', [])),
@@ -987,6 +990,7 @@ def pagina_herramientas_admin():
          "Tengo un plan estratégico que se comunica de manera oficial",
          "Tengo un plan estratégico pero no lo comunico",
          "Participo en el desarrollo del plan estratégico en colectivo",
+         "Planeación intuitiva",
          "No tengo ninguna planeación"]
     )
 
@@ -1023,13 +1027,30 @@ def pagina_herramientas_admin():
          "Sin liderazgo claro"]
     )
 
+    liderazgo_propio = st.selectbox(
+        "7. ¿Cómo es tu tipo de liderazgo?",
+        ["Es específico para un área o departamento",
+         "Lidero todos mis proyectos",
+         "Lidero algunos proyectos",
+         "Comparto el liderazgo",
+         "No soy líder de mis proyectos"]
+    )
+
     identidad = st.selectbox(
-        "7. ¿Tienes una identidad definida?",
+        "8. ¿Tienes una identidad definida?",
         ["Marca con manual definido",
          "Marca definida, identidad informal",
          "Una marca más bien fluida",
          "Llevo una marca por línea de trabajo",
          "Sin identidad definida"]
+    )
+
+    importancia_formalidad = st.selectbox(
+        "9. ¿Qué tan importante es la formalidad en tus relaciones laborales para lograr un buen desempeño de tus proyectos?",
+        ["Muy importantes",
+         "Mucho pero a veces dificulta relaciones",
+         "No tanto prefiero relaciones más fluidas",
+         "No es nada importante"]
     )
 
     col_prev, col_next = st.columns([1, 1])
@@ -1046,7 +1067,9 @@ def pagina_herramientas_admin():
                 'redes': redes,
                 'funciones': funciones,
                 'liderazgo': liderazgo,
-                'identidad': identidad
+                'liderazgo_propio': liderazgo_propio,
+                'identidad': identidad,
+                'importancia_formalidad': importancia_formalidad
             }
             st.session_state.encuesta_page = 3
             st.rerun()
@@ -1060,7 +1083,7 @@ def pagina_herramientas_digitales():
         ["Redes sociales", "Página web", "Almacenamiento en la nube",
          "Banca en línea (recibimos pagos)", "Banca en línea (no recibimos pagos)",
          "Correo personalizado", "Plataformas de llamadas virtuales",
-         "Software de oficina", "Software especializado"]
+         "Software de oficina", "Software especializado", "Otras", "Ninguna"]
     )
 
     if herramientas:
@@ -1090,7 +1113,7 @@ def pagina_herramientas_digitales():
         "Selecciona:",
         ["Grupos de WhatsApp/Telegram", "Grupos de difusión",
          "Grupos de redes sociales", "Comunidades especializadas en línea",
-         "Comunidades híbridas"],
+         "Comunidades híbridas", "Otras", "Ninguna"],
         key="comunidades"
     )
 
