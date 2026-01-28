@@ -1141,7 +1141,7 @@ def pagina_herramientas_admin():
         herramientas_admin_aplica = []
 
     redes = st.selectbox(
-        "11. ¿Tienes una red de trabajo consolidada?",
+        "11. ¿Tienes una red de trabajo consolidada? (por red se entiende: las relaciones con las personas u organizaciones con quienes trabajas)",
         ["Participo activamente con organizaciones del sector",
          "Reconozco organizaciones pero no me reconocen",
          "Estoy consolidando lazos",
