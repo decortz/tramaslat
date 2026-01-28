@@ -1053,15 +1053,15 @@ def pagina_cantidad():
 
 def pagina_herramientas_admin():
     st.markdown("### Herramientas Administrativas y Gestivas")
-
+ 
+    st.markdown("**1. ¿Cómo son tus relaciones de trabajo?**")
     jerarquia = st.selectbox(
-        "1. ¿Cómo son tus relaciones de trabajo?",
         ["Altamente jerarquizadas", "En general menos de 3 niveles jerárquicos",
          "Nos repartimos los liderazgos y funciones", "No reconozco jerarquías"]
     )
 
     planeacion = st.selectbox(
-        "2. ¿Cómo es tu forma de planeación?",
+        "**2. ¿Cómo es tu forma de planeación?**",
         ["Hago o llevo un plan estratégico periódico y se revisa por la dirección",
          "Tengo un plan estratégico que se comunica de manera oficial",
          "Tengo un plan estratégico pero no lo comunico",
@@ -1071,7 +1071,7 @@ def pagina_herramientas_admin():
     )
 
     ecosistema = st.selectbox(
-        "3. ¿Reconoces el ecosistema al que perteneces? (por ecosistema se entiende: la configuración del sector creativo al que perteneces donde participan e intermedian personas de múltiples disciplinas)",
+        "**3. ¿Reconoces el ecosistema al que perteneces?** (por ecosistema se entiende: la configuración del sector creativo al que perteneces donde participan e intermedian personas de múltiples disciplinas)",
         ["Participo formalmente con otras organizaciones de diferentes sectores",
          "Participo informalmente con organizaciones de diferentes sectores",
          "Participo con organizaciones del mismo sector",
@@ -1079,7 +1079,7 @@ def pagina_herramientas_admin():
     )
 
     funciones = st.selectbox(
-        "4. ¿Cómo son tus funciones y labores?",
+        "**4. ¿Cómo son tus funciones y labores?**",
         ["Roles claramente identificados y bajo contrato",
          "Roles identificados y formalizados",
          "Roles informales pero identificables",
@@ -1088,7 +1088,7 @@ def pagina_herramientas_admin():
     )
 
     liderazgo = st.selectbox(
-        "5. ¿Cómo es el liderazgo de otras personas en tus espacios de trabajo?",
+        "**5. ¿Cómo es el liderazgo de otras personas en tus espacios de trabajo?**",
         ["Líderes específicos para cada área",
          "Líderes específicos según el proyecto",
          "Liderazgo compartido por conocimiento",
@@ -1096,7 +1096,7 @@ def pagina_herramientas_admin():
     )
 
     liderazgo_propio = st.selectbox(
-        "6. ¿Cómo es tu tipo de liderazgo?",
+        "**6. ¿Cómo es tu tipo de liderazgo?**",
         ["Es específico para un área o departamento",
          "Lidero todos mis proyectos",
          "Lidero algunos proyectos",
@@ -1105,7 +1105,7 @@ def pagina_herramientas_admin():
     )
 
     identidad = st.selectbox(
-        "7. ¿Tienes una identidad definida?",
+        "**7. ¿Tienes una identidad definida?**",
         ["Marca con manual definido",
          "Marca definida, identidad informal",
          "Una marca más bien fluida",
@@ -1114,7 +1114,7 @@ def pagina_herramientas_admin():
     )
     
     importancia_formalidad = st.selectbox(
-        "8. ¿Qué tan importante es la formalidad en tus relaciones laborales para lograr un buen desempeño de tus proyectos? (por formalidad se entiende: tener manuales y procedimientos escritos, reglamentación, seguimiento para asegurar el cumplimiento y divulgación de estos documentos)",
+        "**8. ¿Qué tan importante es la formalidad en tus relaciones laborales para lograr un buen desempeño de tus proyectos?** (por formalidad se entiende: tener manuales y procedimientos escritos, reglamentación, seguimiento para asegurar el cumplimiento y divulgación de estos documentos)",
         ["Muy importantes",
          "Mucho pero a veces dificulta relaciones",
          "No tanto prefiero relaciones más fluidas",
@@ -1141,7 +1141,7 @@ def pagina_herramientas_admin():
         herramientas_admin_aplica = []
 
     redes = st.selectbox(
-        "11. ¿Tienes una red de trabajo consolidada? (por red se entiende: las relaciones con las personas u organizaciones con quienes trabajas)",
+        "**11. ¿Tienes una red de trabajo consolidada?** (por red se entiende: las relaciones con las personas u organizaciones con quienes trabajas)",
         ["Participo activamente con organizaciones del sector",
          "Reconozco organizaciones pero no me reconocen",
          "Estoy consolidando lazos",
