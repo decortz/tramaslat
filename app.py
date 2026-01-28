@@ -120,30 +120,62 @@ def calcular_tipo_org_score_total(organizaciones):
     return max(-10, min(total, 10))
 
 # ==================== GOOGLE SHEETS ====================
+# CÓDIGO MODIFICADO PARA FUNCIONAR EN RAILWAY Y STREAMLIT CLOUD
 
 import time
+import os
+import json
 
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
 
+def obtener_credenciales_google():
+    """
+    Obtiene las credenciales de Google desde:
+    1. Variables de entorno (Railway, Render, etc.)
+    2. Streamlit Secrets (Streamlit Cloud)
+    """
+    # Opción 1: Variable de entorno GOOGLE_CREDENTIALS (Railway/Render)
+    if os.environ.get('GOOGLE_CREDENTIALS'):
+        try:
+            creds_json = json.loads(os.environ['GOOGLE_CREDENTIALS'])
+            spreadsheet_id = os.environ.get('SPREADSHEET_ID', '')
+            return creds_json, spreadsheet_id, None
+        except json.JSONDecodeError as e:
+            return None, None, f"Error parseando GOOGLE_CREDENTIALS: {e}"
+
+    # Opción 2: Streamlit Secrets (Streamlit Cloud)
+    try:
+        if "gcp_service_account" in st.secrets:
+            creds = dict(st.secrets["gcp_service_account"])
+            spreadsheet_id = st.secrets.get("google_sheets", {}).get("spreadsheet_id", "")
+            return creds, spreadsheet_id, None
+    except Exception:
+        pass
+
+    return None, None, "No se encontraron credenciales de Google (ni en variables de entorno ni en Streamlit Secrets)"
+
 @st.cache_resource(ttl=300)  # Cache por 5 minutos
 def obtener_cliente_gspread():
     """Obtiene cliente gspread con caché para evitar múltiples autenticaciones"""
     try:
-        if "gcp_service_account" not in st.secrets:
-            return None, "No se encontró 'gcp_service_account' en Secrets"
-        if "google_sheets" not in st.secrets:
-            return None, "No se encontró 'google_sheets' en Secrets"
+        creds_info, _, error = obtener_credenciales_google()
+
+        if error:
+            return None, error
+
+        if creds_info is None:
+            return None, "No se encontraron credenciales de Google"
 
         required_fields = ["type", "project_id", "private_key", "client_email"]
         for field in required_fields:
-            if field not in st.secrets["gcp_service_account"]:
-                return None, f"Falta el campo '{field}' en gcp_service_account"
+            if field not in creds_info:
+                return None, f"Falta el campo '{field}' en las credenciales"
 
         credentials = Credentials.from_service_account_info(
-            dict(st.secrets["gcp_service_account"]),
+            creds_info,
             scopes=SCOPES
         )
         client = gspread.authorize(credentials)
@@ -158,7 +190,9 @@ def obtener_spreadsheet():
     if client is None:
         return None, error
     try:
-        spreadsheet_id = st.secrets["google_sheets"]["spreadsheet_id"]
+        _, spreadsheet_id, error = obtener_credenciales_google()
+        if error or not spreadsheet_id:
+            return None, "No se encontró el ID del spreadsheet"
         spreadsheet = client.open_by_key(spreadsheet_id)
         return spreadsheet, None
     except Exception as e:
