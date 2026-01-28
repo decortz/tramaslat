@@ -224,7 +224,8 @@ HEADERS_SHEETS = [
     'timestamp', 'num_organizaciones', 'num_proyectos', 'artista_independiente',
     'organizaciones_tipos', 'organizaciones_cargos', 'proyectos_nombres', 'proyectos_cargos',
     'jerarquia', 'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'liderazgo_propio',
-    'identidad', 'importancia_formalidad', 'herramientas', 'herramientas_pagadas', 'importancia_herramientas',
+    'identidad', 'importancia_formalidad', 'herramientas_admin_conoce', 'herramientas_admin_aplica',
+    'herramientas', 'herramientas_pagadas', 'importancia_herramientas',
     'ias', 'ias_pagadas', 'importancia_ias', 'comunidades', 'importancia_comunidades',
     'pais', 'ciudad', 'edad', 'nivel_academico', 'nombre', 'correo', 'telefono',
     'entrevista', 'convocatorias', 'tipo_org_score', 'nivel_formalizacion',
@@ -253,6 +254,8 @@ def guardar_respuesta_sheets(respuesta, max_reintentos=3):
         respuesta.get('herramientas_admin', {}).get('liderazgo_propio', ''),
         respuesta.get('herramientas_admin', {}).get('identidad', ''),
         respuesta.get('herramientas_admin', {}).get('importancia_formalidad', ''),
+        '|'.join(respuesta.get('herramientas_admin', {}).get('herramientas_admin_conoce', [])),
+        '|'.join(respuesta.get('herramientas_admin', {}).get('herramientas_admin_aplica', [])),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas', [])),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('herramientas_pagadas', [])),
         respuesta.get('herramientas_digitales', {}).get('importancia_herramientas', ''),
@@ -1118,8 +1121,27 @@ def pagina_herramientas_admin():
          "No es nada importante"]
     )
 
+    st.markdown("**9. ¿Conoces alguna de estas herramientas?**")
+    herramientas_admin_conoce = st.multiselect(
+        "Selecciona las que conoces:",
+        ["Planeación estratégica", "Recursos Humanos", "Mercadotecnia",
+         "Control de gestión", "Proceso administrativo (planear, controlar, dirigir)",
+         "Otras", "Ninguna"],
+        key="herramientas_admin_conoce"
+    )
+
+    if herramientas_admin_conoce and "Ninguna" not in herramientas_admin_conoce:
+        st.markdown("**10. ¿Aplicas alguna de ellas?**")
+        herramientas_admin_aplica = st.multiselect(
+            "Selecciona las que aplicas:",
+            [h for h in herramientas_admin_conoce if h != "Otras"],
+            key="herramientas_admin_aplica"
+        )
+    else:
+        herramientas_admin_aplica = []
+
     redes = st.selectbox(
-        "9. ¿Tienes una red de trabajo consolidada?",
+        "11. ¿Tienes una red de trabajo consolidada?",
         ["Participo activamente con organizaciones del sector",
          "Reconozco organizaciones pero no me reconocen",
          "Estoy consolidando lazos",
@@ -1142,7 +1164,9 @@ def pagina_herramientas_admin():
                 'liderazgo': liderazgo,
                 'liderazgo_propio': liderazgo_propio,
                 'identidad': identidad,
-                'importancia_formalidad': importancia_formalidad
+                'importancia_formalidad': importancia_formalidad,
+                'herramientas_admin_conoce': herramientas_admin_conoce,
+                'herramientas_admin_aplica': herramientas_admin_aplica
             }
             st.session_state.encuesta_page = 3
             st.rerun()
