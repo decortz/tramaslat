@@ -1122,8 +1122,7 @@ def pagina_herramientas_admin():
     )
 
     herramientas_admin_conoce = st.multiselect(
-        "**9. ¿Conoces alguna de estas herramientas?**",
-        "Selecciona las que conoces:",
+        "**9. ¿Conoces alguna de estas herramientas?**, Selecciona las que conoces:",
         ["Planeación estratégica", "Recursos Humanos", "Mercadotecnia",
          "Control de gestión", "Proceso administrativo (planear, organizar, controlar, dirigir)",
          "Otras", "Ninguna"],
@@ -1174,9 +1173,8 @@ def pagina_herramientas_admin():
 def pagina_herramientas_digitales():
     st.markdown("### Uso de Herramientas Digitales")
 
-    st.markdown("**1. ¿Qué herramientas utilizas?**")
     herramientas = st.multiselect(
-        "Selecciona:",
+        "**1. De las siguientes, ¿qué herramientas utilizas?**",
         ["Redes sociales", "Página web", "Almacenamiento en la nube",
          "Banca en línea (recibimos pagos)", "Banca en línea (no recibimos pagos)",
          "Correo personalizado", "Plataformas de llamadas virtuales",
@@ -1198,9 +1196,8 @@ def pagina_herramientas_digitales():
         key="importancia_herramientas"
     )
 
-    st.markdown("**4. ¿Qué inteligencias artificiales utilizas?**")
     ias = st.multiselect(
-        "Selecciona:",
+        "**4. De las siguientes, ¿qué inteligencias artificiales utilizas?**",
         ["Generador de texto (ChatGPT, Claude, etc.)",
          "Asistente de escritura", "Traductor", "Asistente de oficina",
          "Generador de imágenes", "Herramienta pedagógica",
@@ -1223,9 +1220,8 @@ def pagina_herramientas_digitales():
         key="importancia_ias"
     )
 
-    st.markdown("**7. ¿Perteneces a alguna comunidad en línea?**")
     comunidades = st.multiselect(
-        "Selecciona:",
+        "**7. ¿Perteneces a alguna comunidad en línea?**",
         ["Grupos de WhatsApp/Telegram", "Grupos de difusión",
          "Grupos de redes sociales", "Comunidades especializadas en línea",
          "Comunidades híbridas", "Otras", "Ninguna"],
