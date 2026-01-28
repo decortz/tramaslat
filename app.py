@@ -1071,7 +1071,7 @@ def pagina_herramientas_admin():
     )
 
     ecosistema = st.selectbox(
-        "3. ¿Reconoces el ecosistema al que perteneces?",
+        "3. ¿Reconoces el ecosistema al que perteneces? (por ecosistema se entiende: la configuración del sector creativo al que perteneces donde participan e intermedian personas de múltiples disciplinas)",
         ["Participo formalmente con otras organizaciones de diferentes sectores",
          "Participo informalmente con organizaciones de diferentes sectores",
          "Participo con organizaciones del mismo sector",
@@ -1114,7 +1114,7 @@ def pagina_herramientas_admin():
     )
     
     importancia_formalidad = st.selectbox(
-        "8. ¿Qué tan importante es la formalidad en tus relaciones laborales para lograr un buen desempeño de tus proyectos?",
+        "8. ¿Qué tan importante es la formalidad en tus relaciones laborales para lograr un buen desempeño de tus proyectos? (por formalidad se entiende: tener manuales y procedimientos escritos, reglamentación, seguimiento para asegurar el cumplimiento y divulgación de estos documentos)",
         ["Muy importantes",
          "Mucho pero a veces dificulta relaciones",
          "No tanto prefiero relaciones más fluidas",
