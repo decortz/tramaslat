@@ -1125,7 +1125,7 @@ def pagina_herramientas_admin():
     herramientas_admin_conoce = st.multiselect(
         "Selecciona las que conoces:",
         ["Planeación estratégica", "Recursos Humanos", "Mercadotecnia",
-         "Control de gestión", "Proceso administrativo (planear, controlar, dirigir)",
+         "Control de gestión", "Proceso administrativo (planear, organizar, controlar, dirigir)",
          "Otras", "Ninguna"],
         key="herramientas_admin_conoce"
     )
