@@ -1054,8 +1054,8 @@ def pagina_cantidad():
 def pagina_herramientas_admin():
     st.markdown("### Herramientas Administrativas y Gestivas")
  
-    st.markdown("**1. ¿Cómo son tus relaciones de trabajo?**")
     jerarquia = st.selectbox(
+        "**1. ¿Cómo son tus relaciones de trabajo?**",
         ["Altamente jerarquizadas", "En general menos de 3 niveles jerárquicos",
          "Nos repartimos los liderazgos y funciones", "No reconozco jerarquías"]
     )
@@ -1121,8 +1121,8 @@ def pagina_herramientas_admin():
          "No es nada importante"]
     )
 
-    st.markdown("**9. ¿Conoces alguna de estas herramientas?**")
     herramientas_admin_conoce = st.multiselect(
+        "**9. ¿Conoces alguna de estas herramientas?**",
         "Selecciona las que conoces:",
         ["Planeación estratégica", "Recursos Humanos", "Mercadotecnia",
          "Control de gestión", "Proceso administrativo (planear, organizar, controlar, dirigir)",
