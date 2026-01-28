@@ -1111,8 +1111,7 @@ def pagina_herramientas_admin():
     )
     
     importancia_formalidad = st.selectbox(
-        "8. ¿Qué tan importante es la formalidad en tus relaciones laborales para lograr un buen desempeño de tus proyectos?",
-        "(por formalidad se entiende: tener manuales y procedimientos escritos, reglamentación, seguimiento para asegurar el cumplimiento y divulgación de estos documentos)",
+        "8. ¿Qué tan importante es la formalidad en tus relaciones laborales para lograr un buen desempeño de tus proyectos? (por formalidad se entiende: tener manuales y procedimientos escritos, reglamentación, seguimiento para asegurar el cumplimiento y divulgación de estos documentos)",
         ["Muy importantes",
          "Mucho pero a veces dificulta relaciones",
          "No tanto prefiero relaciones más fluidas",
@@ -1120,8 +1119,7 @@ def pagina_herramientas_admin():
     )
 
     redes = st.selectbox(
-        "9. ¿Tienes una red de trabajo consolidada?",
-        "(por red de trabajo se entiende: las relaciones que tienes con otras personas, agentes u organizaciones para el desarrollo de tus proyectos)",
+        "9. ¿Tienes una red de trabajo consolidada? (por red de trabajo se entiende: las relaciones que tienes con otras personas, agentes u organizaciones para el desarrollo de tus proyectos)",
         ["Participo activamente con organizaciones del sector",
          "Reconozco organizaciones pero no me reconocen",
          "Estoy consolidando lazos",
