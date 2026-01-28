@@ -1068,8 +1068,7 @@ def pagina_herramientas_admin():
     )
 
     ecosistema = st.selectbox(
-        "3. ¿Reconoces el ecosistema al que perteneces?",
-        "(por ecosistema se entiende: la configuración del sector creativo al que perteneces donde participan e intermedian personas de múltiples disciplinas)",
+        "3. ¿Reconoces el ecosistema al que perteneces? (por ecosistema se entiende: la configuración del sector creativo al que perteneces donde participan e intermedian personas de múltiples disciplinas)",
         ["Participo formalmente con otras organizaciones de diferentes sectores",
          "Participo informalmente con organizaciones de diferentes sectores",
          "Participo con organizaciones del mismo sector",
