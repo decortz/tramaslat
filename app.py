@@ -738,7 +738,7 @@ def mostrar_mapas():
         )
     ])
     fig_labores.update_layout(
-        yaxis_title="Cantidad de personas",
+        yaxis_title="Cantidad de personas que realizan cada labor",
         xaxis_title="Labores profesionales",
         height=450,
         showlegend=False,
