@@ -1042,7 +1042,7 @@ def pagina_cantidad():
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### De los siguientes, ¿qué labores desarrolla en su ámbito profesional?")
+    st.markdown("### De los siguientes, ¿qué labores desarrollas en tu ámbito profesional? (selecciona todas las que apliquen en tu trabajo, independientemente de cuántos tengas, cuántos proyectos haces o a cuántas organizaciones perteneces)")
     labores_profesionales = st.multiselect(
         "Selecciona todas las que apliquen:",
         [
