@@ -713,7 +713,7 @@ def mostrar_mapas():
     # Calcular estadísticas de labores profesionales
     total_encuestados = len(df_filtrado)
     total_labores = df_filtrado['num_labores'].sum()
-    prom_labores = df_filtrado['num_labores'].mean() if total_encuestados > 0 else 0
+    prom_labores = total_labores / total_encuestados if total_encuestados > 0 else 0
 
     # Contar cada tipo de labor
     labores_opciones = ["Creación", "Producción", "Gestión", "Educación formal",
@@ -740,11 +740,12 @@ def mostrar_mapas():
     fig_labores.update_layout(
         yaxis_title="Cantidad de personas",
         xaxis_title="Labores profesionales",
-        height=400,
+        height=450,
         showlegend=False,
         plot_bgcolor='white',
         yaxis=dict(gridcolor='#e0e0e0', rangemode='tozero'),
-        xaxis=dict(tickangle=-45)
+        xaxis=dict(tickangle=-45),
+        margin=dict(t=50)
     )
     st.plotly_chart(fig_labores, use_container_width=True)
 
@@ -913,10 +914,11 @@ def mostrar_mapas():
     ])
     fig_herr.update_layout(
         yaxis_title="Promedio por persona",
-        height=400,
+        height=450,
         showlegend=False,
         plot_bgcolor='white',
-        yaxis=dict(gridcolor='#e0e0e0')
+        yaxis=dict(gridcolor='#e0e0e0', rangemode='tozero'),
+        margin=dict(t=50)
     )
     st.plotly_chart(fig_herr, use_container_width=True)
 
