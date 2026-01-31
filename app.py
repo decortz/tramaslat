@@ -645,7 +645,7 @@ def mostrar_mapas():
     with col8:
         # Tipo de artista independiente
         tipos_artista = ['Todos'] + sorted([a for a in df_datos['artista_independiente'].unique().tolist() if a])
-        filtro_artista = st.selectbox("Nivel de independencia:", tipos_artista, key="f_artista")
+        filtro_artista = st.selectbox("¿Qué tan independiente eres?", tipos_artista, key="f_artista")
 
     # Aplicar filtros
     filtros = {
