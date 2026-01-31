@@ -240,6 +240,7 @@ def guardar_respuesta_sheets(respuesta, max_reintentos=3):
         respuesta.get('demograficos', {}).get('timestamp', ''),
         respuesta.get('num_organizaciones', 0),
         respuesta.get('num_proyectos', 0),
+        '|'.join(respuesta.get('labores_profesionales', [])),
         respuesta.get('artista_independiente', ''),
         '|'.join([org.get('tipo', '') for org in respuesta.get('organizaciones', [])]),
         '|'.join([org.get('cargo', '') for org in respuesta.get('organizaciones', [])]),
@@ -560,12 +561,15 @@ def mostrar_mapas():
         ias_str = str(resp.get('ias', ''))
         ias_pagadas_str = str(resp.get('ias_pagadas', ''))
         comunidades_str = str(resp.get('comunidades', ''))
+        labores_str = str(resp.get('labores_profesionales', ''))
 
         num_herramientas = len([h for h in herramientas_str.split('|') if h]) if herramientas_str else 0
         num_herramientas_pagadas = len([h for h in herramientas_pagadas_str.split('|') if h]) if herramientas_pagadas_str else 0
         num_ias = len([i for i in ias_str.split('|') if i and i != 'Ninguna']) if ias_str else 0
         num_ias_pagadas = len([i for i in ias_pagadas_str.split('|') if i]) if ias_pagadas_str else 0
         num_comunidades = len([c for c in comunidades_str.split('|') if c]) if comunidades_str else 0
+        labores_list = [l for l in labores_str.split('|') if l] if labores_str else []
+        num_labores = len(labores_list)
 
         datos_procesados.append({
             'num_organizaciones': resp.get('num_organizaciones', 0),
@@ -580,6 +584,8 @@ def mostrar_mapas():
             'redes': resp.get('redes', ''),
             'liderazgo': resp.get('liderazgo', ''),
             'artista_independiente': resp.get('artista_independiente', ''),
+            'labores_profesionales': labores_str,
+            'num_labores': num_labores,
             'num_herramientas': num_herramientas,
             'num_herramientas_pagadas': num_herramientas_pagadas,
             'num_ias': num_ias,
@@ -692,24 +698,79 @@ def mostrar_mapas():
     # GRÁFICOS COMPLEMENTARIOS
     st.markdown("### Gráficos Complementarios")
 
-    # 1. Promedios de organizaciones y proyectos
+    # 1. Participación promedio y labores profesionales
     st.markdown("#### 1. Participación promedio")
+
+    # Calcular estadísticas de labores profesionales
+    total_encuestados = len(df_filtrado)
+    total_labores = df_filtrado['num_labores'].sum()
+    prom_labores = df_filtrado['num_labores'].mean() if total_encuestados > 0 else 0
+
+    # Contar cada tipo de labor
+    labores_opciones = ["Creación", "Producción", "Gestión", "Educación formal",
+                        "Educación informal", "Representación de artistas", "Inversionista", "Estudiante"]
+    labores_conteo = {labor: 0 for labor in labores_opciones}
+
+    for labores_str in df_filtrado['labores_profesionales']:
+        if labores_str:
+            for labor in str(labores_str).split('|'):
+                labor = labor.strip()
+                if labor in labores_conteo:
+                    labores_conteo[labor] += 1
+
+    # Mostrar totales
+    st.markdown(f"""
+    <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+        <p style="font-size: 1.1rem; margin: 0;"><strong>Total encuestados:</strong> {total_encuestados}</p>
+        <p style="font-size: 1.1rem; margin: 0.5rem 0 0 0;"><strong>Total labores que realizan:</strong> {total_labores}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Gráfico de barras de labores profesionales
+    fig_labores = go.Figure(data=[
+        go.Bar(
+            x=list(labores_conteo.keys()),
+            y=list(labores_conteo.values()),
+            marker_color=['#1e3a5f', '#0077b6', '#00b4d8', '#48cae4', '#7b2cbf', '#c77dff', '#2d6a4f', '#40916c'],
+            text=list(labores_conteo.values()),
+            textposition='outside'
+        )
+    ])
+    fig_labores.update_layout(
+        yaxis_title="Cantidad de personas",
+        xaxis_title="Labores profesionales",
+        height=400,
+        showlegend=False,
+        plot_bgcolor='white',
+        yaxis=dict(gridcolor='#e0e0e0'),
+        xaxis=dict(tickangle=-45)
+    )
+    st.plotly_chart(fig_labores, use_container_width=True)
+
+    # Promedios de organizaciones, proyectos y labores
     prom_orgs = df_filtrado['num_organizaciones'].mean()
     prom_proys = df_filtrado['num_proyectos'].mean()
 
-    col_prom1, col_prom2 = st.columns(2)
+    col_prom1, col_prom2, col_prom3 = st.columns(3)
     with col_prom1:
         st.markdown(f"""
         <div style="background-color: #5D80B5; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
-            <p style="font-size: 1.3rem; margin-bottom: 0.5rem;">Promedio de organizaciones a las que pertenecen las personas:</p>
+            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Promedio de organizaciones a las que pertenecen las personas:</p>
             <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_orgs:.1f}</p>
         </div>
         """, unsafe_allow_html=True)
     with col_prom2:
         st.markdown(f"""
         <div style="background-color: #A870B0; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
-            <p style="font-size: 1.3rem; margin-bottom: 0.5rem;">Promedio de proyectos en los que participan las personas</p>
+            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Promedio de proyectos en los que participan las personas:</p>
             <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_proys:.1f}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_prom3:
+        st.markdown(f"""
+        <div style="background-color: #2d6a4f; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
+            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Promedio de labores por persona:</p>
+            <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_labores:.1f}</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -981,6 +1042,22 @@ def pagina_cantidad():
     </div>
     """, unsafe_allow_html=True)
 
+    st.markdown("### De los siguientes, ¿qué labores desarrolla en su ámbito profesional?")
+    labores_profesionales = st.multiselect(
+        "Selecciona todas las que apliquen:",
+        [
+            "Creación",
+            "Producción",
+            "Gestión",
+            "Educación formal",
+            "Educación informal",
+            "Representación de artistas",
+            "Inversionista",
+            "Estudiante"
+        ],
+        key="labores_profesionales"
+    )
+
     st.markdown("### ¿Te reconoces como artista independiente?")
     artista_independiente = st.selectbox(
         "Selecciona una opción:",
@@ -1044,6 +1121,7 @@ def pagina_cantidad():
                 st.session_state.temp_data.update({
                     'num_organizaciones': num_org,
                     'num_proyectos': num_proy,
+                    'labores_profesionales': labores_profesionales,
                     'artista_independiente': artista_independiente,
                     'organizaciones': orgs_data,
                     'proyectos': proyectos_data
