@@ -713,7 +713,7 @@ def mostrar_mapas():
     # Calcular estadísticas de labores profesionales
     total_encuestados = len(df_filtrado)
     total_labores = df_filtrado['num_labores'].sum()
-    prom_labores = total_labores / total_encuestados if total_encuestados > 0 else 0
+    prom_labores = df_filtrado['num_labores'].mean() if total_encuestados > 0 else 0
 
     # Contar cada tipo de labor
     labores_opciones = ["Creación", "Producción", "Gestión", "Educación formal",
