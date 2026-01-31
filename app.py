@@ -624,7 +624,7 @@ def mostrar_mapas():
 
     # Filtros de medición
     st.markdown("### Filtros de Medición")
-    col5, col6, col7 = st.columns(3)
+    col5, col6, col7, col8 = st.columns(4)
 
     with col5:
         # Rangos para nivel de digitalización
@@ -637,6 +637,12 @@ def mostrar_mapas():
         filtro_formalizacion = st.selectbox("Nivel de Formalización:", rangos_formalizacion, key="f_formalizacion")
 
     with col7:
+        # Filtro de labores profesionales
+        labores_opciones_filtro = ['Todos', 'Creación', 'Producción', 'Gestión', 'Educación formal',
+                                   'Educación informal', 'Representación de artistas', 'Inversionista', 'Estudiante']
+        filtro_labores = st.selectbox("Labores profesionales:", labores_opciones_filtro, key="f_labores")
+
+    with col8:
         # Tipo de artista independiente
         tipos_artista = ['Todos'] + sorted([a for a in df_datos['artista_independiente'].unique().tolist() if a])
         filtro_artista = st.selectbox("Nivel de independencia:", tipos_artista, key="f_artista")
@@ -667,6 +673,9 @@ def mostrar_mapas():
             df_filtrado = df_filtrado[(df_filtrado['nivel_formalizacion'] > 33) & (df_filtrado['nivel_formalizacion'] <= 66)]
         elif filtro_formalizacion == 'Alto (67-100)':
             df_filtrado = df_filtrado[df_filtrado['nivel_formalizacion'] > 66]
+
+    if filtro_labores != 'Todos':
+        df_filtrado = df_filtrado[df_filtrado['labores_profesionales'].str.contains(filtro_labores, na=False)]
 
     if filtro_artista != 'Todos':
         df_filtrado = df_filtrado[df_filtrado['artista_independiente'] == filtro_artista]
@@ -718,14 +727,6 @@ def mostrar_mapas():
                 if labor in labores_conteo:
                     labores_conteo[labor] += 1
 
-    # Mostrar totales
-    st.markdown(f"""
-    <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-        <p style="font-size: 1.1rem; margin: 0;"><strong>Total encuestados:</strong> {total_encuestados}</p>
-        <p style="font-size: 1.1rem; margin: 0.5rem 0 0 0;"><strong>Total labores que realizan:</strong> {total_labores}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
     # Gráfico de barras de labores profesionales
     fig_labores = go.Figure(data=[
         go.Bar(
@@ -742,7 +743,7 @@ def mostrar_mapas():
         height=400,
         showlegend=False,
         plot_bgcolor='white',
-        yaxis=dict(gridcolor='#e0e0e0'),
+        yaxis=dict(gridcolor='#e0e0e0', rangemode='tozero'),
         xaxis=dict(tickangle=-45)
     )
     st.plotly_chart(fig_labores, use_container_width=True)
