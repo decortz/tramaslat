@@ -770,7 +770,7 @@ def mostrar_mapas():
     with col_prom3:
         st.markdown(f"""
         <div style="background-color: #2d6a4f; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
-            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Promedio de labores por persona:</p>
+            <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Promedio de labores que realiza una persona:</p>
             <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_labores:.1f}</p>
         </div>
         """, unsafe_allow_html=True)
