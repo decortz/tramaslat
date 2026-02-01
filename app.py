@@ -639,7 +639,7 @@ def mostrar_mapas():
     with col7:
         # Filtro de labores profesionales
         labores_opciones_filtro = ['Todos', 'Creación', 'Producción', 'Gestión', 'Educación formal',
-                                   'Educación informal', 'Representación de artistas', 'Inversionista', 'Estudiante']
+                                   'Educación informal', 'Investigación', 'Representación de artistas', 'Inversionista', 'Estudiante']
         filtro_labores = st.selectbox("Labores profesionales:", labores_opciones_filtro, key="f_labores")
 
     with col8:
@@ -717,7 +717,7 @@ def mostrar_mapas():
 
     # Contar cada tipo de labor
     labores_opciones = ["Creación", "Producción", "Gestión", "Educación formal",
-                        "Educación informal", "Representación de artistas", "Inversionista", "Estudiante"]
+                        "Educación informal", "Investigación", "Representación de artistas", "Inversionista", "Estudiante"]
     labores_conteo = {labor: 0 for labor in labores_opciones}
 
     for labores_str in df_filtrado['labores_profesionales']:
@@ -732,7 +732,7 @@ def mostrar_mapas():
         go.Bar(
             x=list(labores_conteo.keys()),
             y=list(labores_conteo.values()),
-            marker_color=['#1e3a5f', '#0077b6', '#00b4d8', '#48cae4', '#7b2cbf', '#c77dff', '#2d6a4f', '#40916c'],
+            marker_color=['#1e3a5f', '#0077b6', '#00b4d8', '#48cae4', '#7b2cbf', '#c77dff', '#9d4edd', '#2d6a4f', '#40916c'],
             text=list(labores_conteo.values()),
             textposition='outside'
         )
@@ -1054,6 +1054,7 @@ def pagina_cantidad():
             "Gestión",
             "Educación formal",
             "Educación informal",
+            "Investigación",
             "Representación de artistas",
             "Inversionista",
             "Estudiante"
