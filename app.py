@@ -226,7 +226,7 @@ HEADERS_SHEETS = [
     'jerarquia', 'planeacion', 'ecosistema', 'redes', 'funciones', 'liderazgo', 'liderazgo_propio',
     'identidad', 'importancia_formalidad', 'herramientas_admin_conoce', 'herramientas_admin_aplica',
     'herramientas', 'herramientas_pagadas', 'importancia_herramientas',
-    'ias', 'ias_pagadas', 'importancia_ias', 'comunidades', 'importancia_comunidades',
+    'ias', 'ias_pagadas', 'importancia_ias', 'comunidades', 'importancia_comunidades', 'asociacion_artistas',
     'pais', 'ciudad', 'edad', 'nivel_academico', 'nombre', 'correo', 'telefono',
     'entrevista', 'convocatorias', 'tipo_org_score', 'nivel_formalizacion',
     'nivel_digitalizacion'
@@ -265,6 +265,7 @@ def guardar_respuesta_sheets(respuesta, max_reintentos=3):
         respuesta.get('herramientas_digitales', {}).get('importancia_ias', ''),
         '|'.join(respuesta.get('herramientas_digitales', {}).get('comunidades', [])),
         respuesta.get('herramientas_digitales', {}).get('importancia_comunidades', ''),
+        respuesta.get('herramientas_digitales', {}).get('asociacion_artistas', ''),
         respuesta.get('demograficos', {}).get('pais', ''),
         respuesta.get('demograficos', {}).get('ciudad', ''),
         respuesta.get('demograficos', {}).get('edad', ''),
@@ -1063,7 +1064,7 @@ def pagina_cantidad():
         key="labores_profesionales"
     )
 
-    st.markdown("### ¿Te reconoces como artista independiente?")
+    st.markdown("### ¿Te reconoces como artista independiente o emprendedor social?")
     artista_independiente = st.selectbox(
         "Selecciona una opción:",
         [
@@ -1320,6 +1321,12 @@ def pagina_herramientas_digitales():
         key="importancia_comunidades"
     )
 
+    asociacion_artistas = st.selectbox(
+        "**9. ¿Pertences a alguna asociación de representación de artistas, gestores o emprendedores sociales?**",
+        ["Sí", "No", "No pero me gustaría pertenecer"],
+        key="asociacion_artistas"
+    )
+
     col_prev, col_next = st.columns([1, 1])
     with col_prev:
         if st.button("⬅️ Regresar", use_container_width=True):
@@ -1336,6 +1343,7 @@ def pagina_herramientas_digitales():
                 'importancia_ias': importancia_ias,
                 'comunidades': comunidades,
                 'importancia_comunidades': importancia_comunidades,
+                'asociacion_artistas': asociacion_artistas,
                 'num_herramientas': len([h for h in herramientas if h != "Ninguna"]),
                 'num_herramientas_pagadas': len(herramientas_pagadas),
                 'num_ias': len([ia for ia in ias if ia != "Ninguna"]),
