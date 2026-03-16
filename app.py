@@ -1065,7 +1065,7 @@ def pagina_cantidad():
     )
 
     st.markdown("### ¿Te reconoces como artista independiente o emprendedor social?")
-    artista_independiente = st.selectbox(
+    artista_independiente = st.radio(
         "Selecciona una opción:",
         [
             "Sí totalmente",
@@ -1144,7 +1144,7 @@ def pagina_herramientas_admin():
          "Nos repartimos los liderazgos y funciones", "No reconozco jerarquías"]
     )
 
-    planeacion = st.selectbox(
+    planeacion = st.radio(
         "**2. ¿Cómo es tu forma de planeación?**",
         ["Hago o llevo un plan estratégico periódico y se revisa por la dirección",
          "Tengo un plan estratégico que se comunica de manera oficial",
@@ -1154,7 +1154,7 @@ def pagina_herramientas_admin():
          "No tengo ninguna planeación"]
     )
 
-    ecosistema = st.selectbox(
+    ecosistema = st.radio(
         "**3. ¿Reconoces el ecosistema al que perteneces?** (por ecosistema se entiende: la configuración del sector creativo al que perteneces donde participan e intermedian personas de múltiples disciplinas)",
         ["Participo formalmente con otras organizaciones de diferentes sectores",
          "Participo informalmente con organizaciones de diferentes sectores",
@@ -1197,7 +1197,7 @@ def pagina_herramientas_admin():
          "Sin identidad definida"]
     )
     
-    importancia_formalidad = st.selectbox(
+    importancia_formalidad = st.radio(
         "**8. ¿Qué tan importante es la formalidad en tus relaciones laborales para lograr un buen desempeño de tus proyectos?** (por formalidad se entiende: tener manuales y procedimientos escritos, reglamentación, seguimiento para asegurar el cumplimiento y divulgación de estos documentos)",
         ["Muy importantes",
          "Mucho pero a veces dificulta relaciones",
@@ -1765,70 +1765,78 @@ st.markdown("""
     }
     .stButton > button:hover { background-color: #8f5a9a; color: #4db8d4; }
 
-    /* ── Fix: texto completo en opciones largas (móvil y tableta) ── */
+    /* ── Fix: texto completo en opciones largas (móvil y tableta) ──
+       Nota: los selectores globales (sin prefijo de padre) son necesarios
+       porque Streamlit/baseweb renderiza el dropdown en un portal separado
+       del DOM (fuera del árbol del componente). */
 
-    /* Valor seleccionado visible en el campo del selectbox */
-    [data-baseweb="select"] [data-testid="stMarkdownContainer"],
-    [data-baseweb="select"] > div > div > div,
+    /* Opciones del menú desplegable – selector global sin prefijo de padre */
+    li[role="option"],
+    div[role="option"] {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        height: auto !important;
+        min-height: 2.5rem !important;
+        padding-top: 0.55rem !important;
+        padding-bottom: 0.55rem !important;
+        line-height: 1.45 !important;
+    }
+
+    /* Texto y spans dentro de cada opción del menú */
+    li[role="option"] *,
+    div[role="option"] * {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+
+    /* Valor seleccionado en el campo cerrado del selectbox */
     [data-baseweb="select"] span {
         white-space: normal !important;
         overflow: visible !important;
-        text-overflow: unset !important;
+        text-overflow: clip !important;
         word-break: break-word !important;
-        overflow-wrap: break-word !important;
     }
-
-    /* Opciones dentro del menú desplegable (selectbox / multiselect) */
-    [data-baseweb="menu"] li,
-    [data-baseweb="menu"] [role="option"],
-    [data-baseweb="menu"] [role="option"] span,
-    [data-baseweb="popover"] li,
-    [data-baseweb="popover"] [role="option"] {
-        white-space: normal !important;
-        overflow: visible !important;
-        text-overflow: unset !important;
-        word-break: break-word !important;
-        overflow-wrap: break-word !important;
+    [data-baseweb="select"] > div,
+    [data-baseweb="select"] > div > div {
         height: auto !important;
         min-height: 2.5rem !important;
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.5rem !important;
-        line-height: 1.4 !important;
     }
 
     /* Etiquetas de botones de radio */
-    .stRadio > div label,
-    .stRadio > div label span,
-    .stRadio > div label p {
+    .stRadio label span,
+    .stRadio label p,
+    div[data-testid="stRadio"] label {
         white-space: normal !important;
         overflow: visible !important;
-        text-overflow: unset !important;
+        text-overflow: clip !important;
         word-break: break-word !important;
         overflow-wrap: break-word !important;
         line-height: 1.5 !important;
     }
 
     /* Etiquetas de checkboxes */
-    .stCheckbox > label span,
-    .stCheckbox > label p {
+    .stCheckbox label span,
+    .stCheckbox label p {
         white-space: normal !important;
         overflow: visible !important;
-        text-overflow: unset !important;
+        text-overflow: clip !important;
         word-break: break-word !important;
         line-height: 1.5 !important;
     }
 
-    /* En móvil: el menú desplegable ocupa el ancho disponible */
+    /* Móvil: menú desplegable acotado al ancho de pantalla */
     @media (max-width: 768px) {
-        [data-baseweb="select"] > div {
-            height: auto !important;
-            min-height: 2.5rem !important;
+        [data-baseweb="popover"],
+        [data-baseweb="menu"] {
+            max-width: 95vw !important;
         }
-        [data-baseweb="popover"] {
-            max-width: 96vw !important;
-        }
-        [data-baseweb="menu"] li {
-            font-size: 0.95rem !important;
+        li[role="option"],
+        div[role="option"] {
+            font-size: 0.93rem !important;
         }
     }
 </style>
