@@ -1764,6 +1764,73 @@ st.markdown("""
         border: none; font-size: 1.1rem;
     }
     .stButton > button:hover { background-color: #8f5a9a; color: #4db8d4; }
+
+    /* ── Fix: texto completo en opciones largas (móvil y tableta) ── */
+
+    /* Valor seleccionado visible en el campo del selectbox */
+    [data-baseweb="select"] [data-testid="stMarkdownContainer"],
+    [data-baseweb="select"] > div > div > div,
+    [data-baseweb="select"] span {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+
+    /* Opciones dentro del menú desplegable (selectbox / multiselect) */
+    [data-baseweb="menu"] li,
+    [data-baseweb="menu"] [role="option"],
+    [data-baseweb="menu"] [role="option"] span,
+    [data-baseweb="popover"] li,
+    [data-baseweb="popover"] [role="option"] {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        height: auto !important;
+        min-height: 2.5rem !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        line-height: 1.4 !important;
+    }
+
+    /* Etiquetas de botones de radio */
+    .stRadio > div label,
+    .stRadio > div label span,
+    .stRadio > div label p {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        line-height: 1.5 !important;
+    }
+
+    /* Etiquetas de checkboxes */
+    .stCheckbox > label span,
+    .stCheckbox > label p {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        word-break: break-word !important;
+        line-height: 1.5 !important;
+    }
+
+    /* En móvil: el menú desplegable ocupa el ancho disponible */
+    @media (max-width: 768px) {
+        [data-baseweb="select"] > div {
+            height: auto !important;
+            min-height: 2.5rem !important;
+        }
+        [data-baseweb="popover"] {
+            max-width: 96vw !important;
+        }
+        [data-baseweb="menu"] li {
+            font-size: 0.95rem !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
