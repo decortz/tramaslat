@@ -1566,9 +1566,7 @@ elif st.session_state.seccion == 'serie_web':
 
     st.markdown("""
     <div class="question-box">
-        <p style="line-height: 1.8;">
-            Estos son nuestros cuatro capítulos favoritos
-        </p>
+    <p>Mira la serie con los casos de artistas que hacen parte del proyecto y que vamos realizando, podrías formar parte de estos si nos envías un correo. </p><p>Estos son nuestros cuatro capítulos favoritos, da click más abajo para ver la serie completa:</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1596,10 +1594,7 @@ elif st.session_state.seccion == 'soundtrack':
 
     st.markdown("""
     <div class="question-box">
-        <p style="line-height: 1.8;">
-            Nuestra serie web tiene un soundtrack de canciones que hicimos exclusivamente para ella.
-            Acá están las cuatro canciones.
-        </p>
+    <p>Nuestra serie web tiene un soundtrack de canciones que hicimos exclusivamente para ella. </p><p>Acá están las cuatro canciones:</p>
     </div>
     """, unsafe_allow_html=True)
 
