@@ -1,2 +1,2 @@
-# tramaslat
-TRAMAS es una plataforma de mapeos sociales para conocer redes y organizaciones culturales, sociales y creativas en América Latina. Es realizada por académicos y académicas de la región.
+# Máscaras Ciberpiratas
+Máscaras Ciberpiratas es un proyecto de investigación que busca responder a la pregunta: ¿Qué es eso de la autogestión y cómo se relaciona con nuestra identidad como latinos? La plataforma recolecta datos sobre tipos de gestión y niveles de digitalización de organizaciones culturales en América Latina, y presenta la serie web, la feria de arte y el libro asociados al proyecto.
