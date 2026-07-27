@@ -1314,7 +1314,7 @@ def pagina_gracias():
 # ==================== CONFIGURACIÓN ====================
 st.set_page_config(
     page_title="Máscaras Ciberpiratas",
-    page_icon="🎭",
+    page_icon="https://elchorroco.wordpress.com/wp-content/uploads/2026/07/solo-mascara-blanca.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -1331,7 +1331,7 @@ st.markdown("""
     .mc-logo {
         text-align: center; padding: 0.5rem 0 1rem 0;
     }
-    .mc-logo img { max-width: 130px; width: 70%; }
+    .mc-logo img { max-width: 240px; width: 90%; }
 
     .credits-small {
         font-family: 'Roboto Slab', serif; font-style: italic; font-size: 0.7rem;
@@ -1362,6 +1362,11 @@ st.markdown("""
 
     .mc-page-image {
         display: block; max-width: 480px; width: 100%; margin: 1rem auto; border-radius: 12px;
+    }
+
+    .mc-cover-image {
+        display: block; max-width: 100%; width: 100%; margin: 0 auto; border-radius: 12px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.15);
     }
 
     .stButton > button {
@@ -1474,7 +1479,7 @@ with st.sidebar:
         st.session_state.encuesta_page = 0
         st.rerun()
 
-    if st.button("📊 Gestión Cultural y Digital", use_container_width=True, key="btn_mapeo1"):
+    if st.button("📊 Mapeo", use_container_width=True, key="btn_mapeo1"):
         st.session_state.seccion = 'mapeo1'
         st.session_state.page = 'vista_mapas'
         st.session_state.encuesta_page = 0
@@ -1589,16 +1594,20 @@ elif st.session_state.seccion == 'feria':
 elif st.session_state.seccion == 'libro':
     st.markdown('<div class="mapeo-title">Máscaras Ciberpiratas</div>', unsafe_allow_html=True)
 
-    st.markdown("""
-    <div class="question-box">
-    <p>Máscaras ciberpiratas es un libro realista de gestión cultural. A diferencia de los textos clásicos de administración, que suelen ofrecer recetas universales aplicables a cualquier tipo de organización y promesas de éxito monetario basadas en la ilusión de poder planear el futuro con estrategias, este libro rompe con esa ficción. Su primera afirmación es provocadora y de entrada rompe un mito ¿de qué futuro estamos hablando? </p><p>El libro no solo propone una visión más realista de la gestión, sino que también ofrece una comprensión más objetiva sobre lo que ocurre en las llamadas industrias creativas y culturales (ICC), pues hace evidente que la época en que la creatividad es regulada a través de los contratos ha quedado atrás, pues en la era digital el arte circula por redes complejas (ecosistemas creativos), y ya no se subsume en cadenas lineales de producción (autor-editor-distribuidor-público).</p>
-    </div>
-    """, unsafe_allow_html=True)
+    col_portada, col_texto = st.columns([1, 1.7], gap="large")
 
-    st.markdown(
-        '<img class="mc-page-image" src="https://elchorroco.wordpress.com/wp-content/uploads/2026/07/portada-para-web.png">',
-        unsafe_allow_html=True
-    )
+    with col_portada:
+        st.markdown(
+            '<img class="mc-cover-image" src="https://elchorroco.wordpress.com/wp-content/uploads/2026/07/portada-para-web.png">',
+            unsafe_allow_html=True
+        )
+
+    with col_texto:
+        st.markdown("""
+        <div class="question-box">
+        <p>Máscaras ciberpiratas es un libro realista de gestión cultural. A diferencia de los textos clásicos de administración, que suelen ofrecer recetas universales aplicables a cualquier tipo de organización y promesas de éxito monetario basadas en la ilusión de poder planear el futuro con estrategias, este libro rompe con esa ficción. Su primera afirmación es provocadora y de entrada rompe un mito ¿de qué futuro estamos hablando? </p><p>El libro no solo propone una visión más realista de la gestión, sino que también ofrece una comprensión más objetiva sobre lo que ocurre en las llamadas industrias creativas y culturales (ICC), pues hace evidente que la época en que la creatividad es regulada a través de los contratos ha quedado atrás, pues en la era digital el arte circula por redes complejas (ecosistemas creativos), y ya no se subsume en cadenas lineales de producción (autor-editor-distribuidor-público).</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("""
     <div class="pink-box">
