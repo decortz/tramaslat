@@ -1314,7 +1314,7 @@ def pagina_gracias():
 # ==================== CONFIGURACIÓN ====================
 st.set_page_config(
     page_title="Máscaras Ciberpiratas",
-    page_icon="https://elchorroco.wordpress.com/wp-content/uploads/2026/07/solo-mascara-blanca.png",
+    page_icon="https://elchorroco.wordpress.com/wp-content/uploads/2026/07/solo-mascara-azul-1.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -1467,7 +1467,7 @@ if 'temp_data' not in st.session_state:
 with st.sidebar:
     st.markdown("""
     <div class="mc-logo">
-        <img src="https://elchorroco.wordpress.com/wp-content/uploads/2026/07/solo-mascara-blanca.png">
+        <img src="https://elchorroco.wordpress.com/wp-content/uploads/2026/07/paleta-de-color_mascaras-ciberpiratas-06.png">
     </div>
     """, unsafe_allow_html=True)
 
@@ -1556,12 +1556,16 @@ elif st.session_state.seccion == 'serie_web':
     """, unsafe_allow_html=True)
 
     st.markdown("""
-    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; margin-top: 1rem;">
-        <iframe src="https://www.youtube.com/embed/videoseries?list=PLlmVVBH4XMZCIh1DXFh3XmYZqkLbiToyH"
-                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen>
-        </iframe>
+    <div style="max-width: 900px; margin: 1rem auto 0 auto;">
+        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px;">
+            <iframe src="https://www.youtube.com/embed/videoseries?si=RDeFGr7UX4h1uRMA&list=PLlmVVBH4XMZCIh1DXFh3XmYZqkLbiToyH"
+                    title="YouTube video player"
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; max-width: 100%; border: 0;"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen>
+            </iframe>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
