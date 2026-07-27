@@ -1453,6 +1453,20 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def youtube_embed(video_id, title="YouTube video player"):
+    """Devuelve el HTML de un iframe de YouTube responsivo (16:9)"""
+    return f"""
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; margin-bottom: 1rem;">
+        <iframe src="https://www.youtube.com/embed/{video_id}"
+                title="{title}"
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen>
+        </iframe>
+    </div>
+    """
+
 # ==================== INICIALIZACIÓN ====================
 if 'seccion' not in st.session_state:
     st.session_state.seccion = 'intro'
@@ -1487,6 +1501,10 @@ with st.sidebar:
 
     if st.button("🎬 Serie Web", use_container_width=True, key="btn_serie_web"):
         st.session_state.seccion = 'serie_web'
+        st.rerun()
+
+    if st.button("🎵 Soundtrack", use_container_width=True, key="btn_soundtrack"):
+        st.session_state.seccion = 'soundtrack'
         st.rerun()
 
     if st.button("🎨 Feria de Arte", use_container_width=True, key="btn_feria"):
@@ -1549,25 +1567,48 @@ elif st.session_state.seccion == 'serie_web':
     st.markdown("""
     <div class="question-box">
         <p style="line-height: 1.8;">
-            Mira la serie con los casos de artistas que hacen parte del proyecto y que vamos realizando,
-            podrías formar parte de estos si nos envías un correo
+            Estos son nuestros cuatro capítulos favoritos
         </p>
     </div>
     """, unsafe_allow_html=True)
 
+    capitulos = ['mH-0NdhHcNM', 'UMdT1hP0nUY', 'ppnJwypcjUk', 'NZn7nr7K5u4']
+
+    col1, col2 = st.columns(2)
+    for i, video_id in enumerate(capitulos):
+        with (col1 if i % 2 == 0 else col2):
+            st.markdown(youtube_embed(video_id), unsafe_allow_html=True)
+
     st.markdown("""
-    <div style="max-width: 900px; margin: 1rem auto 0 auto;">
-        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px;">
-            <iframe src="https://www.youtube.com/embed/videoseries?si=RDeFGr7UX4h1uRMA&list=PLlmVVBH4XMZCIh1DXFh3XmYZqkLbiToyH"
-                    title="YouTube video player"
-                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; max-width: 100%; border: 0;"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin"
-                    allowfullscreen>
-            </iframe>
-        </div>
+    <div style="text-align: center; margin-top: 0.5rem;">
+        <a href="https://youtube.com/playlist?list=PLlmVVBH4XMZCIh1DXFh3XmYZqkLbiToyH&si=u_I9rhonYeM7nnYV" target="_blank" style="text-decoration: none;">
+            <button style="background-color: #EA185E; color: #FFFFFF; font-family: 'Roboto', sans-serif;
+                           font-weight: 700; border-radius: 10px; padding: 0.75rem 2rem; border: none; font-size: 1.1rem; cursor: pointer;">
+                🎬 Ver la serie completa
+            </button>
+        </a>
     </div>
     """, unsafe_allow_html=True)
+
+# ==================== SOUNDTRACK ====================
+elif st.session_state.seccion == 'soundtrack':
+    st.markdown('<div class="mapeo-title">Soundtrack Máscaras Ciberpiratas</div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="question-box">
+        <p style="line-height: 1.8;">
+            Nuestra serie web tiene un soundtrack de canciones que hicimos exclusivamente para ella.
+            Acá están las cuatro canciones.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    canciones = ['qXPZKylY7Sg', 'AbBFhIGObuU', 'tD7oJgqTOf8', '0576LOVLj7M']
+
+    col1, col2 = st.columns(2)
+    for i, video_id in enumerate(canciones):
+        with (col1 if i % 2 == 0 else col2):
+            st.markdown(youtube_embed(video_id), unsafe_allow_html=True)
 
 # ==================== FERIA DE ARTE ====================
 elif st.session_state.seccion == 'feria':
