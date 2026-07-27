@@ -328,147 +328,6 @@ def cargar_respuestas_sheets():
         st.error(f"❌ Error cargando respuestas: {type(e).__name__}: {e}")
         return []
 
-# ==================== GOOGLE SHEETS - STREAMING (Hoja2) ====================
-
-def conectar_google_sheets_streaming(mostrar_errores=True):
-    """Conecta con la Hoja2 de Google Sheets usando spreadsheet cacheado"""
-    try:
-        spreadsheet, error = obtener_spreadsheet()
-        if spreadsheet is None:
-            if mostrar_errores:
-                st.error(f"❌ {error}")
-            return None
-        return spreadsheet.worksheet("Hoja2")
-    except gspread.exceptions.WorksheetNotFound:
-        if mostrar_errores:
-            st.error("❌ No se encontró 'Hoja2'. Créala en tu Google Sheets.")
-        return None
-    except gspread.exceptions.APIError as e:
-        if mostrar_errores:
-            st.error(f"❌ Error de API de Google: {e}")
-        return None
-    except Exception as e:
-        if mostrar_errores:
-            st.error(f"❌ Error conectando a Hoja2: {type(e).__name__}: {e}")
-        return None
-
-def guardar_respuesta_streaming(respuesta, max_reintentos=3):
-    """Guarda una respuesta de streaming en Google Sheets Hoja2"""
-
-    # Preparar fila con columnas separadas para ingresos y streams
-    plataformas = respuesta.get('plataformas', {})
-
-    fila = [
-        respuesta.get('timestamp', ''),
-        respuesta.get('pais', ''),
-        respuesta.get('tipo_distribucion', ''),
-        plataformas.get('Spotify', {}).get('ingresos', 0),
-        plataformas.get('Spotify', {}).get('reproducciones', 0),
-        plataformas.get('Apple Music', {}).get('ingresos', 0),
-        plataformas.get('Apple Music', {}).get('reproducciones', 0),
-        plataformas.get('YouTube', {}).get('ingresos', 0),
-        plataformas.get('YouTube', {}).get('reproducciones', 0),
-        plataformas.get('Tidal', {}).get('ingresos', 0),
-        plataformas.get('Tidal', {}).get('reproducciones', 0),
-        plataformas.get('Amazon Music', {}).get('ingresos', 0),
-        plataformas.get('Amazon Music', {}).get('reproducciones', 0),
-        plataformas.get('Otros', {}).get('ingresos', 0),
-        plataformas.get('Otros', {}).get('reproducciones', 0)
-    ]
-
-    for intento in range(max_reintentos):
-        try:
-            sheet = conectar_google_sheets_streaming(mostrar_errores=(intento == max_reintentos - 1))
-            if sheet is None:
-                if intento < max_reintentos - 1:
-                    time.sleep(2 ** intento)
-                    continue
-                return False
-
-            sheet.append_row(fila)
-            st.success("✅ Respuesta guardada correctamente")
-            return True
-        except gspread.exceptions.APIError as e:
-            if "429" in str(e) and intento < max_reintentos - 1:
-                time.sleep(2 ** intento)
-                continue
-            st.error(f"❌ Error de API al guardar: {e}")
-            return False
-        except Exception as e:
-            st.error(f"❌ Error guardando: {type(e).__name__}: {e}")
-            return False
-
-    return False
-
-def cargar_respuestas_streaming():
-    """Carga todas las respuestas de streaming desde Hoja2"""
-    sheet = conectar_google_sheets_streaming(mostrar_errores=True)
-    if sheet is None:
-        return []
-
-    try:
-        all_values = sheet.get_all_values()
-
-        if len(all_values) <= 1:
-            return []
-
-        datos = []
-
-        def safe_int(valor):
-            """Convierte a entero de forma segura"""
-            try:
-                if not valor:
-                    return 0
-                return int(float(str(valor).replace(',', '')))
-            except:
-                return 0
-
-        def safe_get(row, index, default=''):
-            """Obtiene un valor de la fila de forma segura"""
-            return row[index] if index < len(row) else default
-
-        for row in all_values[1:]:
-            if len(row) >= 3:  # Mínimo: timestamp, pais, tipo_dist
-                datos.append({
-                    'timestamp': safe_get(row, 0),
-                    'pais': safe_get(row, 1),
-                    'tipo_distribucion': safe_get(row, 2),
-                    'plataformas': {
-                        'Spotify': {
-                            'ingresos': safe_int(safe_get(row, 3)),
-                            'reproducciones': safe_int(safe_get(row, 4))
-                        },
-                        'Apple Music': {
-                            'ingresos': safe_int(safe_get(row, 5)),
-                            'reproducciones': safe_int(safe_get(row, 6))
-                        },
-                        'YouTube': {
-                            'ingresos': safe_int(safe_get(row, 7)),
-                            'reproducciones': safe_int(safe_get(row, 8))
-                        },
-                        'Tidal': {
-                            'ingresos': safe_int(safe_get(row, 9)),
-                            'reproducciones': safe_int(safe_get(row, 10))
-                        },
-                        'Amazon Music': {
-                            'ingresos': safe_int(safe_get(row, 11)),
-                            'reproducciones': safe_int(safe_get(row, 12))
-                        },
-                        'Otros': {
-                            'ingresos': safe_int(safe_get(row, 13)),
-                            'reproducciones': safe_int(safe_get(row, 14))
-                        }
-                    }
-                })
-
-        return datos
-    except gspread.exceptions.APIError as e:
-        st.error(f"❌ Error de API al cargar datos: {e}")
-        return []
-    except Exception as e:
-        st.error(f"❌ Error cargando respuestas streaming: {type(e).__name__}: {e}")
-        return []
-
 # ==================== FUNCIONES DE VISUALIZACIÓN ====================
 
 def crear_scatter_dual(df_filtrado):
@@ -482,7 +341,7 @@ def crear_scatter_dual(df_filtrado):
         name='Formalización',
         marker=dict(
             size=df_filtrado['total_entidades'] * 5 + 5,
-            color='#5D80B5',
+            color='#258DC5',
             opacity=0.6,
             line=dict(width=1, color='white')
         ),
@@ -500,7 +359,7 @@ def crear_scatter_dual(df_filtrado):
         name='Digitalización',
         marker=dict(
             size=df_filtrado['total_entidades'] * 5 + 5,
-            color='#A870B0',
+            color='#EA185E',
             opacity=0.6,
             line=dict(width=1, color='white')
         ),
@@ -694,9 +553,9 @@ def mostrar_mapas():
     st.markdown("""
     <div style="background-color: #f0f0f0; padding: 0.8rem; border-radius: 8px; margin-bottom: 1rem;">
         En este mapa medimos, por persona, qué tan formalizadas son sus relaciones
-        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: #5D80B5; margin: 0 3px;"></span>
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: #258DC5; margin: 0 3px;"></span>
         y su nivel de digitalización
-        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: #A870B0; margin: 0 3px;"></span>
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: #EA185E; margin: 0 3px;"></span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -733,7 +592,7 @@ def mostrar_mapas():
         go.Bar(
             x=list(labores_conteo.keys()),
             y=list(labores_conteo.values()),
-            marker_color=['#1e3a5f', '#0077b6', '#00b4d8', '#48cae4', '#7b2cbf', '#c77dff', '#9d4edd', '#e76f51', '#2d6a4f', '#40916c'],
+            marker_color=['#0B3C5D', '#B0123F', '#1B6A99', '#EA185E', '#258DC5', '#F06B94', '#6FB6DE', '#7A0E3B', '#B3D9EE', '#F7A8C0'],
             text=list(labores_conteo.values()),
             textposition='outside'
         )
@@ -757,21 +616,21 @@ def mostrar_mapas():
     col_prom1, col_prom2, col_prom3 = st.columns(3)
     with col_prom1:
         st.markdown(f"""
-        <div style="background-color: #5D80B5; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
+        <div style="background-color: #258DC5; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
             <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Promedio de organizaciones a las que pertenecen las personas:</p>
             <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_orgs:.1f}</p>
         </div>
         """, unsafe_allow_html=True)
     with col_prom2:
         st.markdown(f"""
-        <div style="background-color: #A870B0; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
+        <div style="background-color: #EA185E; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
             <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Promedio de proyectos en los que participan las personas:</p>
             <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_proys:.1f}</p>
         </div>
         """, unsafe_allow_html=True)
     with col_prom3:
         st.markdown(f"""
-        <div style="background-color: #2d6a4f; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
+        <div style="background-color: #1B6A99; color: white; padding: 1.5rem; border-radius: 10px; text-align: center;">
             <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Promedio de labores que realiza una persona:</p>
             <p style="font-size: 2.5rem; font-weight: bold; margin: 0;">{prom_labores:.1f}</p>
         </div>
@@ -786,7 +645,7 @@ def mostrar_mapas():
         st.markdown("#### 2a. Tipos de jerarquía")
         jer_counts = df_filtrado['jerarquia'].value_counts()
         # Colores azules con alto contraste
-        colores_azul = ['#03045e', '#0077b6', '#00b4d8', '#90e0ef', '#caf0f8']
+        colores_azul = ['#0B3C5D', '#1B6A99', '#258DC5', '#6FB6DE', '#B3D9EE']
         fig_jer = go.Figure(data=[go.Pie(
             labels=jer_counts.index.tolist(),
             values=jer_counts.values.tolist(),
@@ -807,7 +666,7 @@ def mostrar_mapas():
         st.markdown("#### 2b. Tipos de planeación")
         plan_counts = df_filtrado['planeacion'].value_counts()
         # Colores morados con alto contraste
-        colores_morado = ['#4a0080', '#7b2cbf', '#c77dff', '#e0aaff', '#f3d5ff', '#fce4ff']
+        colores_morado = ['#7A0E3B', '#B0123F', '#EA185E', '#F06B94', '#F7A8C0', '#FBD3E0']
         fig_plan = go.Figure(data=[go.Pie(
             labels=plan_counts.index.tolist(),
             values=plan_counts.values.tolist(),
@@ -831,7 +690,7 @@ def mostrar_mapas():
         st.markdown("#### 3a. Tipos de ecosistemas")
         eco_counts = df_filtrado['ecosistema'].value_counts()
         # Colores azules con alto contraste
-        colores_azul_eco = ['#03045e', '#0077b6', '#00b4d8', '#90e0ef', '#caf0f8']
+        colores_azul_eco = ['#0B3C5D', '#1B6A99', '#258DC5', '#6FB6DE', '#B3D9EE']
         fig_eco = go.Figure(data=[go.Pie(
             labels=eco_counts.index.tolist(),
             values=eco_counts.values.tolist(),
@@ -852,7 +711,7 @@ def mostrar_mapas():
         st.markdown("#### 3b. Tipos de redes")
         redes_counts = df_filtrado['redes'].value_counts()
         # Colores morados con alto contraste
-        colores_morado_redes = ['#4a0080', '#7b2cbf', '#c77dff', '#e0aaff', '#f3d5ff', '#fce4ff']
+        colores_morado_redes = ['#7A0E3B', '#B0123F', '#EA185E', '#F06B94', '#F7A8C0', '#FBD3E0']
         fig_redes = go.Figure(data=[go.Pie(
             labels=redes_counts.index.tolist(),
             values=redes_counts.values.tolist(),
@@ -873,7 +732,7 @@ def mostrar_mapas():
     st.markdown("#### 4. Tipos de liderazgo")
     lider_counts = df_filtrado['liderazgo'].value_counts()
     # Colores azules con alto contraste
-    colores_azul_lider = ['#03045e', '#0077b6', '#00b4d8', '#90e0ef', '#caf0f8']
+    colores_azul_lider = ['#0B3C5D', '#1B6A99', '#258DC5', '#6FB6DE', '#B3D9EE']
     fig_lider = go.Figure(data=[go.Pie(
         labels=lider_counts.index.tolist(),
         values=lider_counts.values.tolist(),
@@ -902,7 +761,7 @@ def mostrar_mapas():
     categorias = ['Herramientas\ndigitales', 'Herramientas\npagadas', 'IAs\nusadas', 'IAs\npagadas', 'Comunidades']
     promedios = [prom_herramientas, prom_herr_pagadas, prom_ias, prom_ias_pagadas, prom_comunidades]
     # Colores con alto contraste
-    colores_barras = ['#1e3a5f', '#0077b6', '#7b2cbf', '#c77dff', '#2d6a4f']
+    colores_barras = ['#1B6A99', '#258DC5', '#B0123F', '#EA185E', '#6FB6DE']
 
     fig_herr = go.Figure(data=[
         go.Bar(
@@ -945,7 +804,7 @@ def mostrar_encuesta():
 
 def pagina_intro():
     st.markdown("""
-    <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
+    <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #EA185E;">
         <p style="line-height: 1.8;">
             En el mundo del arte, la cultura y el emprendimiento social las personas solemos
             participar en múltiples espacios, proyectos u organizaciones. Esto lo hacemos por
@@ -993,7 +852,7 @@ def pagina_intro():
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
             <strong>Responsables:</strong> El Chorro Producciones (Colombia) y Huika Mexihco (México),
-            en el marco del proyecto de investigación enmarcado en la plataforma "TRAMAS: Tejidos en Red, Análisis y Mapeos Sociales".
+            en el marco del proyecto de investigación "Máscaras Ciberpiratas".
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
             <strong>Finalidad:</strong> Tus respuestas serán utilizadas exclusivamente para fines de investigación
@@ -1010,7 +869,7 @@ def pagina_intro():
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
             <strong>Derechos:</strong> Puedes solicitar acceso, corrección o eliminación de tus datos escribiendo a
-            <a href="mailto:info@elchorro.com.co" style="color: #A870B0;">info@elchorro.com.co</a>.
+            <a href="mailto:info@elchorro.com.co" style="color: #EA185E;">info@elchorro.com.co</a>.
         </p>
         <p style="line-height: 1.6; margin-top: 0.8rem; font-size: 0.95rem;">
             <strong>Protección:</strong> Tus datos se almacenan de forma segura y no serán compartidos con terceros
@@ -1397,7 +1256,7 @@ def pagina_demograficos():
     mascaras = st.radio("""¿Te gustaría participar en la serie web "Máscaras Ciberpiratas"?, Si no la has visto, te invitamos a verla en el vínculo de abajo""", ["Si, ¿cuánto cuesta?", "No"])
     st.markdown("""
     <a href="https://www.youtube.com/watch?v=0x9rbnCRHR0&list=PLlmVVBH4XMZCIh1DXFh3XmYZqkLbiToyH" target="_blank" style="text-decoration: none;">
-        <button style="width: 40%; background-color: #A870B0; color: #62CBE6; font-family: 'Roboto', sans-serif, margin-left;
+        <button style="width: 40%; background-color: #EA185E; color: #FFFFFF; font-family: 'Roboto', sans-serif, margin-left;
                        font-weight: 700; border-radius: 10px; padding: 0.75rem; border: none; font-size: 1rem; cursor: pointer;">
             🤖¡Mira la serie web "Máscaras Ciberpiratas" acá!
         </button>
@@ -1452,269 +1311,10 @@ def pagina_gracias():
     </div>
     """, unsafe_allow_html=True)
 
-# ==================== MAPEO 2: STREAMING ====================
-
-def mapeo_streaming():
-    """Mapeo completo de pagos de plataformas de streaming a artistas"""
-
-    # Inicializar estado
-    if 'streaming_page' not in st.session_state:
-        st.session_state.streaming_page = 0
-    if 'streaming_data' not in st.session_state:
-        st.session_state.streaming_data = []
-
-    PLATAFORMAS = ['Spotify', 'Apple Music', 'YouTube', 'Tidal', 'Amazon Music', 'Otros']
-
-    # ===== PÁGINA 0: INTRODUCCIÓN =====
-    if st.session_state.streaming_page == 0:
-        st.markdown("""
-        <div class="question-box" style="margin-top: 1.5rem; border-left: 4px solid #A870B0;">
-            <p style="line-height: 1.8;">
-                En esta encuesta mostramos el porcentaje total de ingresos que obtienen los artistas
-                por las plataformas más reconocidas y la comparamos con el porcentaje de reproducciones
-                en cada una. De esa manera, buscamos identificar qué plataforma paga mejor.
-            </p>
-            <p style="line-height: 1.8; margin-top: 1rem; font-weight: 600;">
-                En esta encuesta no te pediremos ningún dato personal y la información se manejará
-                de manera totalmente anónima.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Checkbox de consentimiento
-        acepta = st.checkbox(
-            "Acepto participar en esta encuesta anónima y que mis datos sean utilizados para fines de investigación.",
-            key="acepta_streaming"
-        )
-
-        if acepta:
-            if st.button("INICIAR ENCUESTA ➡️", use_container_width=True, key="btn_iniciar_streaming"):
-                st.session_state.streaming_page = 1
-                st.rerun()
-        else:
-            st.button("INICIAR ENCUESTA ➡️", use_container_width=True, disabled=True, key="btn_iniciar_streaming_disabled")
-
-        # Texto de tratamiento de datos debajo
-        st.markdown("""
-        <div class="question-box">
-        <h4 style="font-family: 'Roboto', sans-serif; margin-bottom: 1rem;">Aviso de Tratamiento de Datos Personales</h4>
-            <p style="line-height: 1.6; font-size: 0.95rem;">Esta encuesta es completamente anónima. No recopilamos
-            datos personales identificables. La información agregada será utilizada únicamente para fines
-            de investigación académica por El Chorro Producciones y Huika Mexihco. Los resultados se
-            presentarán de forma agregada. Contacto: <a href="mailto:info@elchorro.com.co" style="color: #A870B0;">info@elchorro.com.co</a></p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ===== PÁGINA 1: ENCUESTA =====
-    elif st.session_state.streaming_page == 1:
-        st.markdown("### Encuesta de Ingresos por Streaming")
-
-        # Pregunta 1: País
-        paises = sorted([country.name for country in pycountry.countries])
-        pais = st.selectbox("1. ¿En qué país resides?", ["Selecciona..."] + paises, key="streaming_pais")
-
-        # Pregunta 2: Gestor de derechos
-        gestor = st.radio(
-            "2. ¿Eres el gestor de tus derechos de distribución?",
-            ["Sí", "No"],
-            key="streaming_gestor",
-            horizontal=True
-        )
-
-        # Pregunta 3: Tipo de distribución
-        tipo_dist = st.selectbox(
-            "3. ¿Qué tipo de distribución tienes?",
-            ["Selecciona...", "Disquera", "Disquera o distribuidora pequeña y regional",
-             "Plataforma de gestión independiente", "Totalmente independiente"],
-            key="streaming_tipo_dist"
-        )
-
-        # Pregunta 4: Ingresos y reproducciones por plataforma
-        st.markdown("### 4. ¿Cuántos ingresos y reproducciones recibes en cada plataforma?")
-        st.caption("Ingresa solo números sin puntos ni comas. Deja en 0 si no usas la plataforma.")
-
-        datos_plataformas = {}
-        for plataforma in PLATAFORMAS:
-            with st.expander(f"📀 {plataforma}", expanded=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    ingresos = st.number_input(
-                        f"Ingresos ($USD)",
-                        min_value=0,
-                        value=0,
-                        key=f"ing_{plataforma}"
-                    )
-                with col2:
-                    reproducciones = st.number_input(
-                        f"Reproducciones",
-                        min_value=0,
-                        value=0,
-                        key=f"rep_{plataforma}"
-                    )
-                datos_plataformas[plataforma] = {'ingresos': ingresos, 'reproducciones': reproducciones}
-
-        # Navegación
-        col_prev, col_next = st.columns([1, 1])
-        with col_prev:
-            if st.button("⬅️ Regresar", use_container_width=True, key="streaming_back"):
-                st.session_state.streaming_page = 0
-                st.rerun()
-        with col_next:
-            campos_ok = pais != "Selecciona..." and tipo_dist != "Selecciona..."
-            if campos_ok:
-                if st.button("Enviar respuesta ✅ (si muestra error, solo vuelve a dar click acá, no te regreses)", use_container_width=True, key="streaming_submit"):
-                    respuesta = {
-                        'timestamp': datetime.now().isoformat(),
-                        'pais': pais,
-                        'gestor': gestor,
-                        'tipo_distribucion': tipo_dist,
-                        'plataformas': datos_plataformas
-                    }
-                    # Guardar en Google Sheets (Hoja2)
-                    if guardar_respuesta_streaming(respuesta):
-                        st.session_state.streaming_page = 2
-                        st.rerun()
-                    else:
-                        st.error("Error al guardar la respuesta. Por favor intenta de nuevo.")
-            else:
-                st.button("Enviar respuesta ✅", use_container_width=True, disabled=True, key="streaming_submit_disabled")
-                st.caption("Completa país y tipo de distribución para continuar.")
-
-    # ===== PÁGINA 2: GRACIAS =====
-    elif st.session_state.streaming_page == 2:
-        st.markdown("""
-        <div class="thanks-message">
-            ¡Gracias por participar!<br>
-            Tu respuesta nos ayuda a entender mejor el ecosistema del streaming musical.
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ===== PÁGINA 3: VISUALIZACIÓN =====
-    elif st.session_state.streaming_page == 3:
-        mostrar_visualizacion_streaming()
-
-def mostrar_visualizacion_streaming():
-    """Muestra la visualización del mapeo de streaming"""
-
-    PLATAFORMAS = ['Spotify', 'Apple Music', 'YouTube', 'Tidal', 'Amazon Music', 'Otros']
-
-    # Cargar datos desde Google Sheets (Hoja2)
-    datos = cargar_respuestas_streaming()
-
-    if not datos:
-        st.info("📊 Aún no hay respuestas. ¡Sé el primero en participar!")
-        return
-
-    # Convertir a DataFrame para filtrado
-    df = pd.DataFrame(datos)
-
-    # ===== FILTROS =====
-    st.markdown("### Filtros")
-    col1, col2 = st.columns(2)
-
-    with col1:
-        paises_disponibles = ['Todos'] + sorted(df['pais'].unique().tolist())
-        filtro_pais = st.selectbox("País:", paises_disponibles, key="filtro_streaming_pais")
-
-    with col2:
-        tipos_disponibles = ['Todos'] + sorted(df['tipo_distribucion'].unique().tolist())
-        filtro_tipo = st.selectbox("Tipo de distribución:", tipos_disponibles, key="filtro_streaming_tipo")
-
-    # Aplicar filtros
-    df_filtrado = df.copy()
-    if filtro_pais != 'Todos':
-        df_filtrado = df_filtrado[df_filtrado['pais'] == filtro_pais]
-    if filtro_tipo != 'Todos':
-        df_filtrado = df_filtrado[df_filtrado['tipo_distribucion'] == filtro_tipo]
-
-    st.info(f"📊 Mostrando {len(df_filtrado)} de {len(df)} respuestas")
-
-    if len(df_filtrado) == 0:
-        st.warning("No hay datos con los filtros seleccionados.")
-        return
-
-    # ===== CALCULAR TOTALES POR PLATAFORMA =====
-    totales_ingresos = {p: 0 for p in PLATAFORMAS}
-    totales_reproducciones = {p: 0 for p in PLATAFORMAS}
-
-    for _, row in df_filtrado.iterrows():
-        plataformas_data = row['plataformas']
-        for plataforma in PLATAFORMAS:
-            if plataforma in plataformas_data:
-                totales_ingresos[plataforma] += plataformas_data[plataforma].get('ingresos', 0)
-                totales_reproducciones[plataforma] += plataformas_data[plataforma].get('reproducciones', 0)
-
-    # Calcular porcentajes
-    total_ing = sum(totales_ingresos.values())
-    total_rep = sum(totales_reproducciones.values())
-
-    if total_ing == 0 and total_rep == 0:
-        st.warning("No hay datos de ingresos o reproducciones para mostrar.")
-        return
-
-    pct_ingresos = {p: (v / total_ing * 100) if total_ing > 0 else 0 for p, v in totales_ingresos.items()}
-    pct_reproducciones = {p: (v / total_rep * 100) if total_rep > 0 else 0 for p, v in totales_reproducciones.items()}
-
-    # ===== GRÁFICO DE BARRAS =====
-    st.markdown("### Comparativa: % Ingresos vs % Reproducciones por Plataforma")
-
-    fig = go.Figure()
-
-    fig.add_trace(go.Bar(
-        name='% Ingresos',
-        x=PLATAFORMAS,
-        y=[pct_ingresos[p] for p in PLATAFORMAS],
-        marker_color='#5D80B5',
-        text=[f"{pct_ingresos[p]:.1f}%" for p in PLATAFORMAS],
-        textposition='outside'
-    ))
-
-    fig.add_trace(go.Bar(
-        name='% Reproducciones',
-        x=PLATAFORMAS,
-        y=[pct_reproducciones[p] for p in PLATAFORMAS],
-        marker_color='#A870B0',
-        text=[f"{pct_reproducciones[p]:.1f}%" for p in PLATAFORMAS],
-        textposition='outside'
-    ))
-
-    fig.update_layout(
-        barmode='group',
-        xaxis_title="Plataforma",
-        yaxis_title="Porcentaje (%)",
-        height=500,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-        plot_bgcolor='white',
-        yaxis=dict(gridcolor='#f0f0f0', range=[0, max(max(pct_ingresos.values()), max(pct_reproducciones.values())) * 1.2])
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    # ===== TABLA RESUMEN =====
-    st.markdown("### Resumen por Plataforma")
-
-    resumen_data = []
-    for p in PLATAFORMAS:
-        # Ratio = promedio de pago por stream (ingresos / reproducciones)
-        pago_por_stream = (totales_ingresos[p] / totales_reproducciones[p]) if totales_reproducciones[p] > 0 else 0
-        resumen_data.append({
-            'Plataforma': p,
-            'Total Ingresos ($)': f"${totales_ingresos[p]:,.0f}",
-            'Total Streams': f"{totales_reproducciones[p]:,.0f}",
-            '% Ingresos': f"{pct_ingresos[p]:.1f}%",
-            '% Streams': f"{pct_reproducciones[p]:.1f}%",
-            'Pago/Stream': f"${pago_por_stream:.2f}"
-        })
-
-    df_resumen = pd.DataFrame(resumen_data)
-    st.dataframe(df_resumen, use_container_width=True, hide_index=True)
-
-    st.caption("**Pago/Stream:** Promedio de dólares pagados por cada reproducción en la plataforma.")
-
 # ==================== CONFIGURACIÓN ====================
 st.set_page_config(
-    page_title="TRAMAS - Mapeos Sociales",
-    page_icon="🕸️",
+    page_title="Máscaras Ciberpiratas",
+    page_icon="🎭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -1724,25 +1324,22 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Roboto+Slab:wght@400;700&display=swap');
 
-    [data-testid="stSidebar"] { background-color: #808080; }
+    [data-testid="stSidebar"] { background-color: #258DC5; }
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { color: black; }
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] { color: #FFFFFF; }
 
-    .tramas-logo {
-        background-color: #000000; color: white; padding: 0.3rem 0.2rem;
-        border-radius: 10px; font-family: 'Roboto', sans-serif; font-weight: 700;
-        font-size: 2.5rem; text-align: center; margin-bottom: 0.1rem;
-        display: flex; align-items: center; justify-content: center; gap: 0.1rem;
+    .mc-logo {
+        text-align: center; padding: 0.5rem 0 1rem 0;
     }
-    .tramas-logo-icon { font-size: 2rem; color: #808080; }
+    .mc-logo img { max-width: 130px; width: 70%; }
 
     .credits-small {
         font-family: 'Roboto Slab', serif; font-style: italic; font-size: 0.7rem;
-        color: black; text-align: center; margin: 1rem 0 0.5rem 0; line-height: 1.3;
+        color: #FFFFFF; text-align: center; margin: 1rem 0 0.5rem 0; line-height: 1.3;
     }
 
     .mapeo-title {
-        background-color: #000000; color: white; padding: 0.8rem 2rem;
+        background-color: #258DC5; color: white; padding: 0.8rem 2rem;
         border-radius: 10px; font-family: 'Roboto', sans-serif; font-weight: 700;
         font-size: 1.8rem; text-align: center; margin-bottom: 1rem;
     }
@@ -1753,17 +1350,26 @@ st.markdown("""
     }
 
     .thanks-message {
-        background-color: #A870B0; color: white; padding: 2rem; border-radius: 15px;
+        background-color: #EA185E; color: white; padding: 2rem; border-radius: 15px;
         text-align: center; font-family: 'Roboto', sans-serif; font-size: 1.5rem;
         font-weight: 700; margin: 1rem 0;
     }
 
+    .pink-box {
+        background-color: #EA185E; color: #FFFFFF; padding: 1.2rem 1.5rem; border-radius: 14px;
+        font-family: 'Roboto', sans-serif; font-size: 1.05rem; text-align: center; margin: 1rem 0;
+    }
+
+    .mc-page-image {
+        display: block; max-width: 480px; width: 100%; margin: 1rem auto; border-radius: 12px;
+    }
+
     .stButton > button {
-        background-color: #A870B0; color: #62CBE6; font-family: 'Roboto', sans-serif;
+        background-color: #EA185E; color: #FFFFFF; font-family: 'Roboto', sans-serif;
         font-weight: 700; border-radius: 10px; padding: 0.75rem 2rem;
         border: none; font-size: 1.1rem;
     }
-    .stButton > button:hover { background-color: #8f5a9a; color: #4db8d4; }
+    .stButton > button:hover { background-color: #B0123F; color: #FFFFFF; }
 
     /* ── Fix: texto completo en opciones largas (móvil y tableta) ──
        Nota: los selectores globales (sin prefijo de padre) son necesarios
@@ -1855,9 +1461,8 @@ if 'temp_data' not in st.session_state:
 # ==================== SIDEBAR ====================
 with st.sidebar:
     st.markdown("""
-    <div class="tramas-logo">
-        <span class="tramas-logo-icon">🕸️</span>
-        <span>tramas</span>
+    <div class="mc-logo">
+        <img src="https://elchorroco.wordpress.com/wp-content/uploads/2026/07/solo-mascara-blanca.png">
     </div>
     """, unsafe_allow_html=True)
 
@@ -1875,17 +1480,24 @@ with st.sidebar:
         st.session_state.encuesta_page = 0
         st.rerun()
 
-    if st.button("🎵 Pagos de Streaming a Artistas", use_container_width=True, key="btn_mapeo2"):
-        st.session_state.seccion = 'mapeo2'
-        st.session_state.streaming_page = 0
+    if st.button("🎬 Serie Web", use_container_width=True, key="btn_serie_web"):
+        st.session_state.seccion = 'serie_web'
+        st.rerun()
+
+    if st.button("🎨 Feria de Arte", use_container_width=True, key="btn_feria"):
+        st.session_state.seccion = 'feria'
+        st.rerun()
+
+    if st.button("📖 Libro", use_container_width=True, key="btn_libro"):
+        st.session_state.seccion = 'libro'
         st.rerun()
 
     st.markdown("---")
     st.markdown("""
     <a href="https://elchorro.com.co/contactanos/" target="_blank" style="text-decoration: none;">
-        <button style="width: 100%; background-color: #A870B0; color: #62CBE6; font-family: 'Roboto', sans-serif;
+        <button style="width: 100%; background-color: #EA185E; color: #FFFFFF; font-family: 'Roboto', sans-serif;
                        font-weight: 700; border-radius: 10px; padding: 0.75rem; border: none; font-size: 1rem; cursor: pointer;">
-            💬 ¿Te interesa hacer un mapeo? ¡Contáctanos!
+            💬 ¿Te interesa participar? ¡Contáctanos!
         </button>
     </a>
     """, unsafe_allow_html=True)
@@ -1905,19 +1517,11 @@ with st.sidebar:
 
 # ==================== PÁGINA INTRO ====================
 if st.session_state.seccion == 'intro':
-    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.2rem; text-align: center; color: #000000;"><strong>Tejidos en Red: Análisis y Mapeos Sociales</strong>', unsafe_allow_html=True)
+    st.markdown('<p style="font-family: \'Roboto Slab\', serif; font-size: 1.6rem; text-align: center; color: #000000;"><strong>Máscaras Ciberpiratas</strong></p>', unsafe_allow_html=True)
 
     st.markdown("""
     <div class="question-box">
-        <p style="line-height: 1.8;">
-            TRAMAS es una plataforma de mapeos sociales para conocer redes y organizaciones culturales,
-            sociales y creativas en América Latina. Es realizada por académicos y académicas de la región.
-            Aquí podrás participar en diferentes mapeos y conocer los resultados de estas investigaciones colaborativas.
-        </p>
-        <p style="line-height: 1.8; margin-top: 1rem;">
-            Selecciona un mapeo del menú lateral para comenzar.
-            Te agradecemos todo el apoyo, tu aporte es esencial para nuestro trabajo.
-        </p>
+    <p>Máscaras Ciberpiratas es un proyecto de investigación en donde buscamos responder a la pregunta: ¿Qué es eso de la autogestión y cómo se relaciona con nuestra identidad como latinos? </p><p> En esta página podrás ver todos sus componentes en el menú de la izquierda: empieza por ver el mapa que se arma en tiempo real y participa para conocer los tipos de gestión y niveles de digitalización de las organizaciones culturales. Luego podrás ver la serie web de los casos que han participado en el estudio, la convocatoria a próximas ferias de arte que organizamos y las fechas y lugares en donde se presentará, y el libro que funciona a modo de guía de autogestión para artistas.</p><p> Este proyecto es desarrollado en el marco de la beca “Posdoctorados por México”, 2023-1 de la Secretaría de Ciencia, Humanidades, Tecnología e Innovación (SECIHTI).</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1933,14 +1537,71 @@ elif st.session_state.seccion == 'mapeo1':
     with tab2:
         mostrar_mapas()
 
-# ==================== MAPEO STREAMING ====================
-elif st.session_state.seccion == 'mapeo2':
-    st.markdown('<div class="mapeo-title">¿Cuánto le pagan las plataformas de streaming a los artistas?</div>', unsafe_allow_html=True)
+# ==================== SERIE WEB ====================
+elif st.session_state.seccion == 'serie_web':
+    st.markdown('<div class="mapeo-title">Serie Web Máscaras Ciberpiratas</div>', unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs(["📝 Participar en Encuesta", "📊 Ver Resultados"])
+    st.markdown("""
+    <div class="question-box">
+        <p style="line-height: 1.8;">
+            Mira la serie con los casos de artistas que hacen parte del proyecto y que vamos realizando,
+            podrías formar parte de estos si nos envías un correo
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    with tab1:
-        mapeo_streaming()
+    st.markdown("""
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; margin-top: 1rem;">
+        <iframe src="https://www.youtube.com/embed/videoseries?list=PLlmVVBH4XMZCIh1DXFh3XmYZqkLbiToyH"
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+        </iframe>
+    </div>
+    """, unsafe_allow_html=True)
 
-    with tab2:
-        mostrar_visualizacion_streaming()
+# ==================== FERIA DE ARTE ====================
+elif st.session_state.seccion == 'feria':
+    st.markdown('<div class="mapeo-title">Feria Máscaras Ciberpiratas</div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="question-box">
+        <p style="line-height: 1.8;">
+            Te invitamos a participar en la feria itinerante que busca obras en las cuales las y los artistas
+            respondan a la pregunta: ¿Cómo te enfrentas a la ansiedad digital?
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(
+        '<img class="mc-page-image" src="https://elchorroco.wordpress.com/wp-content/uploads/2026/07/texto-curatorial-mc-11.png">',
+        unsafe_allow_html=True
+    )
+
+    st.markdown("""
+    <div class="pink-box">
+        La convocatoria está cerrada en este momento, pero pronto publicaremos las fechas y lineamientos
+        para la feria del 2027
+    </div>
+    """, unsafe_allow_html=True)
+
+# ==================== LIBRO ====================
+elif st.session_state.seccion == 'libro':
+    st.markdown('<div class="mapeo-title">Máscaras Ciberpiratas</div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="question-box">
+    <p>Máscaras ciberpiratas es un libro realista de gestión cultural. A diferencia de los textos clásicos de administración, que suelen ofrecer recetas universales aplicables a cualquier tipo de organización y promesas de éxito monetario basadas en la ilusión de poder planear el futuro con estrategias, este libro rompe con esa ficción. Su primera afirmación es provocadora y de entrada rompe un mito ¿de qué futuro estamos hablando? </p><p>El libro no solo propone una visión más realista de la gestión, sino que también ofrece una comprensión más objetiva sobre lo que ocurre en las llamadas industrias creativas y culturales (ICC), pues hace evidente que la época en que la creatividad es regulada a través de los contratos ha quedado atrás, pues en la era digital el arte circula por redes complejas (ecosistemas creativos), y ya no se subsume en cadenas lineales de producción (autor-editor-distribuidor-público).</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(
+        '<img class="mc-page-image" src="https://elchorroco.wordpress.com/wp-content/uploads/2026/07/portada-para-web.png">',
+        unsafe_allow_html=True
+    )
+
+    st.markdown("""
+    <div class="pink-box">
+        Pronto podrás adquirir el libro acá
+    </div>
+    """, unsafe_allow_html=True)
